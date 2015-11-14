@@ -30,7 +30,7 @@ cdef class Field:
 
     # Initialize the relevant values
     def __cinit__(self, np.float64_t u, np.float64_t v, np.float64_t w,        
-                    np.float64_t u11, np.float64_t s12, np.float64_t s13,      
+                    np.float64_t s11, np.float64_t s12, np.float64_t s13,      
                     np.float64_t s22, np.float64_t s23, np.float64_t s33,      
                     np.float64_t chi, np.float64_t cu, np.float64_t cv, np.float64_t cw,         
                     np.float64_t cs11, np.float64_t cs12, np.float64_t cs13,
