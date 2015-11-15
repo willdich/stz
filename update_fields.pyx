@@ -52,13 +52,17 @@ cpdef update_velocities(Field [:, :, :] grid,                                  #
 
     # Store our our needed variables
     cdef:
-        Field my_f_val              # Field value at the currrent location
-        Field xp_f_val              # Field value to the right (x+1)
-        Field xm_f_val              # Field value to the left (x-1)
-        Field yp_f_val              # Field value at y+1
-        Field ym_f_val              # Field value at y-1
-        Field zp_f_val              # Field value at z+1
-        Field zm_f_val              # Field at z-1
+        Field me                    # Field value at the currrent location (x, y, z)
+        Field xp                    # Field value at (x+1, y, z) 
+        Field xm                    # Field value to the left (x-1, y, z)
+        Field yp                    # Field value at (x, y+1, z)
+        Field ym                    # Field value at (x, y-1, z)
+        Field zp                    # Field value at (x, y, z+1)
+        Field zm                    # Field value at (x, y, z-1)
+        Field xm_ym                 # Field value at (x-1, y-1, z)
+        Field xm_zm                 # Field value at (x-1, y, z-1)
+        Field ym_zm                 # Field value at (x, y-1, z-1)
+        Field xm_ym_zm              # Field value at (x-1, y-1, z-1)
 
         np.float64_t d_s11_dx       # Derivatives of stress components
         np.float64_t d_s12_dy
@@ -71,32 +75,54 @@ cpdef update_velocities(Field [:, :, :] grid,                                  #
         np.float64_t d_s33_dz
 
         np.float64_t rho_inv        # 1/rho
-
+        np.float64_t dx_inv         # 1/dx
+        np.float64_t dy_inv         # 1/dy
+        np.float64_t dz_inv         # 1/dz
+        
+    # Get the inverse values for simplicity
+    rho_inv = 1. / rho
+    dx_inv = 1. / dx
+    dy_inv = 1. / dy
+    dz_inv = 1. / dz
 
     # First look up the corresponding grid values
-    my_f_val = grid[x, y, z]
-    xp_f_val = grid[x + 1, y, z]
-    xm_f_val = grid[x - 1, y, z]
-    yp_f_val = grid[x, y + 1, z]
-    ym_f_val = grid[x, y - 1, z]
-    zp_f_val = grid[x, y, z + 1]
-    zm_f_val = grid[x, y, z - 1]
+    me = grid[x, y, z]
+    xp = grid[x + 1, y, z]
+    xm = grid[x - 1, y, z]
+    yp = grid[x, y + 1, z]
+    ym = grid[x, y - 1, z]
+    zp = grid[x, y, z + 1]
+    zm = grid[x, y, z - 1]
+    xm_ym = grid[x - 1, y - 1, z]
+    xm_zm = grid[x - 1, y, z - 1]
+    ym_zm = grid[x, y - 1, z - 1]
+    xm_ym_zm = grid[x - 1, y - 1, z - 1]
 
     # Now calculate the needed derivatives using a central difference scheme
-    d_s11_dx = (xp_f_val.s11 - xm_f_val.s11) / (2 * dx)
-    d_s12_dy = (yp_f_val.s12 - ym_f_val.s12) / (2 * dy)
-    d_s13_dz = (zp_f_val.s13 - zm_f_val.s13) / (2 * dz)
-    d_s12_dx = (xp_f_val.s12 - xm_f_val.s12) / (2 * dx)
-    d_s22_dy = (yp_f_val.s22 - ym_f_val.s22) / (2 * dy)
-    d_s23_dz = (zp_f_val.s23 - zm_f_val.s23) / (2 * dz)
-    d_s13_dz = (xp_f_val.s13 - xm_f_val.s13) / (2 * dx)
-    d_s32_dy = (yp_f_val.s32 - ym_f_val.s32) / (2 * dy)
-    d_s33_dz = (zp_f_val.s33 - zm_f_val.s33) / (2 * dz)
+    # Note that this is calculated using the STAGGERED derivative
+    # We are looking at grid point (x, y, z). This is grouped with grid point
+    # (x+1/2, y+1/2, z + 1/2).
+    # We calculate the staggered x derivative at (x, y, z) (with analogous expressions for other derivatives) as:
+    # 1 / (4 * dx) * ( (x + 1/2, y + 1/2, z + 1/2) - (x - 1/2, y + 1/2, z + 1/2) )
+    # +  1 / (4 * dx) * ( (x + 1/2, y - 1/2, z + 1/2) - (x - 1/2, y - 1/2, z + 1/2) )
+    # + 1 / (4 * dx) * (first expression with z -> z - 1)
+    # + 1 / (4 * dx) * (second expression with z -> z-1)
+    # First handle the x derivatives
+    d_s11_dx = .25 * dx_inv * (me.s11 - xm.s11 + ym.s11 - xm_ym.s11 + zm.s11 - xm_zm.s11 + ym_zm.s11 - xm_ym_zm.s11) 
+    d_s12_dx = .25 * dx_inv * (me.s12 - xm.s12 + ym.s12 - xm_ym.s12 + zm.s12 - xm_zm.s12 + ym_zm.s12 - xm_ym_zm.s12) 
+    d_s13_dx = .25 * dx_inv * (me.s13 - xm.s13 + ym.s13 - xm_ym.s13 + zm.s13 - xm_zm.s13 + ym_zm.s13 - xm_ym_zm.s13) 
 
-    # Get the inverse density for simplicity
-    rho_inv = 1. / rho
+    # Now the y derivatives
+    d_s12_dy = .25 * dy_inv * (me.s12 - ym.s12 + xm.s12 - xm_ym.s12 + zm.s12 - ym_zm.s12 + xm_zm.s12 - xm_ym_zm.s12) 
+    d_s22_dy = .25 * dy_inv * (me.s22 - ym.s22 + xm.s22 - xm_ym.s22 + zm.s22 - ym_zm.s22 + xm_zm.s22 - xm_ym_zm.s22) 
+    d_s23_dy = .25 * dy_inv * (me.s23 - ym.s23 + xm.s23 - xm_ym.s23 + zm.s23 - ym_zm.s23 + xm_zm.s23 - xm_ym_zm.s23) 
+
+    # And last the z derivatives
+    d_s13_dz = .25 * dz_inv * (me.s13 - zm.s13 + xm.s13 - xm_zm.s13 + ym.s13 - ym_zm.s13 + xm_ym.s13 - xm_ym_zm.s13)
+    d_s23_dz = .25 * dz_inv * (me.s23 - zm.s23 + xm.s23 - xm_zm.s23 + ym.s23 - ym_zm.s23 + xm_ym.s23 - xm_ym_zm.s23)
+    d_s13_dz = .25 * dz_inv * (me.s33 - zm.s33 + xm.s33 - xm_zm.s33 + ym.s33 - ym_zm.s33 + xm_ym.s33 - xm_ym_zm.s33)
 
     # Now calculate the updates
     my_f_val.cu = rho_inv * dt * (d_s11_dx + d_s12_dy + d_s13_dz)
     my_f_val.cv = rho_inv * dt * (d_s12_dx + d_s22_dy + d_s23_dz)
-    my_f_val.cw = rho_inv * dt * (d_s12_dx + d_s23_dy + d_s33_dz)
+    my_f_val.cw = rho_inv * dt * (d_s13_dx + d_s23_dy + d_s33_dz)
