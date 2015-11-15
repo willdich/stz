@@ -2,7 +2,7 @@ cimport numpy as np
 cimport fields
 
 cpdef update_stress(Field [:, :, :] grid,                                      # Grid of field values
-                      np.uint32_t x, np.uint32_t y, np.uint32_t x,             # Location in the grid
+                      np.uint32_t x, np.uint32_t y, np.uint32_t z,             # Location in the grid
                       np.float64_t dx, np.float64_t dy, np.float64_t dz,       # Spatial discretization
                       np.float64_t dt,                                         # Time discretization
                       np.float64_t lam, np.float64_t mu):                      # Material Parameters
@@ -38,7 +38,7 @@ cpdef update_stress(Field [:, :, :] grid,                                      #
     curr_field_value.cs23 = dt * 2 * mu * curr_field_value.cs23
 
 cpdef update_velocities(Field [:, :, :] grid,                                  # Grid of field values
-                      np.uint32_t x, np.uint32_t y, np.uint32_t x,             # Location in the grid
+                      np.uint32_t x, np.uint32_t y, np.uint32_t z,             # Location in the grid
                       np.float64_t dx, np.float64_t dy, np.float64_t dz,       # Spatial discretization
                       np.float64_t dt,                                         # Time discretization
                       np.float64_t rho):                                       # Material density

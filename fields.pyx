@@ -7,26 +7,27 @@ cdef class Field:
     so that values at timestep n+1 are only calculated using values at timestep n.
     """
 
-    cdef np.float64_t u                   # x velocity
-    cdef np.float64_t v                   # y velocity
-    cdef np.float64_t w                   # z velocity
-    cdef np.float64_t s11                 # Six components of the stress tensor
-    cdef np.float64_t s12
-    cdef np.float64_t s13
-    cdef np.float64_t s22
-    cdef np.float64_t s23
-    cdef np.float64_t s33
-    cdef np.float64_t chi                 # Effective temperature
-    cdef np.float64_t cu                  # Change in the velocity components
-    cdef np.float64_t cv
-    cdef np.float64_t cw
-    cdef np.float64_t cs11                # Change in the stress components
-    cdef np.float64_t cs12
-    cdef np.float64_t cs13
-    cdef np.float64_t cs22
-    cdef np.float64_t cs23
-    cdef np.float64_t cs33
-    cdef np.float64_t cchi                # Change in the effective temperature
+    cdef:
+        np.float64_t u                   # x velocity
+        np.float64_t v                   # y velocity
+        np.float64_t w                   # z velocity
+        np.float64_t s11                 # Six components of the stress tensor
+        np.float64_t s12
+        np.float64_t s13
+        np.float64_t s22
+        np.float64_t s23
+        np.float64_t s33
+        np.float64_t chi                 # Effective temperature
+        np.float64_t cu                  # Change in the velocity components
+        np.float64_t cv
+        np.float64_t cw
+        np.float64_t cs11                # Change in the stress components
+        np.float64_t cs12
+        np.float64_t cs13
+        np.float64_t cs22
+        np.float64_t cs23
+        np.float64_t cs33
+        np.float64_t cchi                # Change in the effective temperature
 
     # Initialize the relevant values
     def __cinit__(self, np.float64_t u, np.float64_t v, np.float64_t w,        
