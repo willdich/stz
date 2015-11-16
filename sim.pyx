@@ -54,15 +54,18 @@ cpdef go(int N_x, int N_y, int N_z, int N_t,                                    
                     curr_grid_element.update()
 
                     # And print the data to the output file
-                    fprintf("%f %f %f %f %f %f %f %f %f %f %f %f %f",
+                    fprintf(fp, "%f %f %f %f %f %f %f %f %f %f %f %f %f",
                                             tt, xx, yy, zz, curr_grid_element.s11,
                                             curr_grid_element.s12, curr_grid_element.s13,
                                             curr_grid_element.s22, curr_grid_element.s23,
                                             curr_grid_element.s33, curr_grid_element.u,
                                             curr_grid_element.v, curr_grid_element.w)
 
-cdef set_up_ghost_regions(np.float64_t [:, :, :, :] grid,                           # Our grid
-                         int N_x, int N_y, int N_z):        # Number of non-ghost points in each dimension
+        # And close the output file
+        fclose(fp)
+
+cdef set_up_ghost_regions(np.float64_t [:, :, :, :] grid,               # Our grid
+                          int N_x, int N_y, int N_z):                   # Number of non-ghost points in each dimension
 
     """ Sets the ghost regions as necessary. In the serial implementation, this is just simple 
     periodic boundary conditions. This function will become more complex when moving to the parallel implementation
