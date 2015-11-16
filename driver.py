@@ -1,12 +1,10 @@
 import numpy as np
 from fields import Field
+from sim import go
 from update_fields import *
 
 if name == '__main__':
-    # Set up material parameters
-    # Instantiate the grid?
-    # Run the simulation
-
+    
     # Inputs for the material lame parameters and density
     lamd = 0
     mu = 0
@@ -36,39 +34,15 @@ if name == '__main__':
     N_t = 0
     dt = (t_f - t_0) / N_t
 
+    # Number of parameters stored at each grid point 
+    num_params = 20 
+
     # Instantiate the grid
-    grid = np.zeros( (N_x, N_y, N_z) )
-
-    # Now fill it up with the corresponding fields
-    for xx in range(N_x):
-        for yy in range(N_y):
-            for zz in range(N_z):
-                # Automatically defaults to 0 at all grid points
-                grid[xx, jj, kk] = Field.__new__(Field)
-
-    # Plug in the boundary conditions
-    ### grid[boundary locations].(values) = b.c.'s
+    # +2 for ghost regions at the edge
+    grid = np.zeros( (N_x + 2, N_y + 2, N_z + 2, num_params), dtype=np.float64_t )
 
     # Run the simulation
-    for tt in np.linspace(t_0, t_f, N_t):
-        # First loop over the grid and calculate all changes
-        for xx in range(N_x):
-            for yy in range(N_y):
-                for zz in range(N_z):
-                    # Calculate the changes in stress
-                    update_stress(grid, xx, yy, zz
-                                  dx, dy, dz,
-                                  dt, mu, lamd, rho)
-
-                    # Calculate the changes in velocities
-                    update_velocities(grid, xx, yy, zz,
-                                      dx, dy, dz,
-                                      dt, rho)
-
-        # Now we have to loop again, because we can't add in the changes until
-        # we have calculated the change for EVERY grid point (otherwise some grid points
-        # will calculate the new values at timestep n+1 using other grid point values at timestep n+1
-        for xx in range(N_x):
-            for yy in range(N_y):
-                for zz in range(N_z):
-                    grid[xx, yy, zz].update()
+    go(N_x, N_y, N_z, N_t,
+       np.float64_t(dx), np.float64_t(dy), np.float64_t(dz), np.float64_t(dt),
+       np.float64_t(mu), np.float64_t(rho), np.float64_t(lambd),
+       grid)

@@ -1,8 +1,8 @@
 cimport numpy as np
 cimport fields
 
-cpdef update_stress(Field [:, :, :] grid,                                      # Grid of field values
-                      np.uint32_t x, np.uint32_t y, np.uint32_t z,             # Location in the grid
+cdef update_stresses(np.float64_t [:, :, :, :] grid,                           # Grid of field values
+                      int x, int y, int z,                                     # Location in the grid
                       np.float64_t dx, np.float64_t dy, np.float64_t dz,       # Spatial discretization
                       np.float64_t dt,                                         # Time discretization
                       np.float64_t lam, np.float64_t mu):                      # Material Parameters
@@ -15,13 +15,13 @@ cpdef update_stress(Field [:, :, :] grid,                                      #
     # Store our needed variables
     cdef:
         # The value at the current grid point: this is what we are updating
-        Field curr_field_value
+        Field *curr_field_value
 
         # The trace of the local stress tensor
         np.float64_t sig_trace
 
     # Look up the field at the current grid point
-    curr_field_value = grid[x, y, z]
+    curr_field_value = <Field *> &grid[x, y, z, 0]
 
     # Calculate the trace because it shows up in a few places
     sig_trace = curr_field_value.s11 + curr_field_value.s22 + curr_field_value.s33
@@ -37,8 +37,8 @@ cpdef update_stress(Field [:, :, :] grid,                                      #
     curr_field_value.cs13 = dt * 2 * mu * curr_field_value.cs13
     curr_field_value.cs23 = dt * 2 * mu * curr_field_value.cs23
 
-cpdef update_velocities(Field [:, :, :] grid,                                  # Grid of field values
-                      np.uint32_t x, np.uint32_t y, np.uint32_t z,             # Location in the grid
+cdef update_velocities(Field [:, :, :] grid,                                   # Grid of field values
+                      int x, int y, int z,                                     # Location in the grid
                       np.float64_t dx, np.float64_t dy, np.float64_t dz,       # Spatial discretization
                       np.float64_t dt,                                         # Time discretization
                       np.float64_t rho):                                       # Material density
@@ -52,17 +52,17 @@ cpdef update_velocities(Field [:, :, :] grid,                                  #
 
     # Store our our needed variables
     cdef:
-        Field me                    # Field value at the currrent location (x, y, z)
-        Field xp                    # Field value at (x+1, y, z) 
-        Field xm                    # Field value to the left (x-1, y, z)
-        Field yp                    # Field value at (x, y+1, z)
-        Field ym                    # Field value at (x, y-1, z)
-        Field zp                    # Field value at (x, y, z+1)
-        Field zm                    # Field value at (x, y, z-1)
-        Field xm_ym                 # Field value at (x-1, y-1, z)
-        Field xm_zm                 # Field value at (x-1, y, z-1)
-        Field ym_zm                 # Field value at (x, y-1, z-1)
-        Field xm_ym_zm              # Field value at (x-1, y-1, z-1)
+        Field *me                    # Field value at the currrent location (x, y, z)
+        Field *xp                    # Field value at (x+1, y, z) 
+        Field *xm                    # Field value to the left (x-1, y, z)
+        Field *yp                    # Field value at (x, y+1, z)
+        Field *ym                    # Field value at (x, y-1, z)
+        Field *zp                    # Field value at (x, y, z+1)
+        Field *zm                    # Field value at (x, y, z-1)
+        Field *xm_ym                 # Field value at (x-1, y-1, z)
+        Field *xm_zm                 # Field value at (x-1, y, z-1)
+        Field *ym_zm                 # Field value at (x, y-1, z-1)
+        Field *xm_ym_zm              # Field value at (x-1, y-1, z-1)
 
         np.float64_t d_s11_dx       # Derivatives of stress components
         np.float64_t d_s12_dy
@@ -85,18 +85,20 @@ cpdef update_velocities(Field [:, :, :] grid,                                  #
     dy_inv = 1. / dy
     dz_inv = 1. / dz
 
-    # First look up the corresponding grid values
-    me = grid[x, y, z]
-    xp = grid[x + 1, y, z]
-    xm = grid[x - 1, y, z]
-    yp = grid[x, y + 1, z]
-    ym = grid[x, y - 1, z]
-    zp = grid[x, y, z + 1]
-    zm = grid[x, y, z - 1]
-    xm_ym = grid[x - 1, y - 1, z]
-    xm_zm = grid[x - 1, y, z - 1]
-    ym_zm = grid[x, y - 1, z - 1]
-    xm_ym_zm = grid[x - 1, y - 1, z - 1]
+    # First look up the corresponding grid values 
+    # We cast the all the floats at the corresponding grid points to a Field pointer (telling Cython to
+    # interpret the following memory as a field) and then dereference it to get the Field back
+    me = <Field *> &grid[x, y, z, 0]
+    xp = <Field *> &grid[x + 1, y, z, 0]
+    xm = <Field *> &grid[x - 1, y, z, 0]
+    yp = <Field *> &grid[x, y + 1, z, 0]
+    ym = <Field *> &grid[x, y - 1, z, 0]
+    zp = <Field *> &grid[x, y, z + 1, 0]
+    zm = <Field *> &grid[x, y, z - 1, 0]
+    xm_ym = <Field *> &grid[x - 1, y - 1, z, 0]
+    xm_zm = <Field *> &grid[x - 1, y, z - 1, 0]
+    ym_zm = <Field *> &grid[x, y - 1, z - 1, 0]
+    xm_ym_zm = <Field *> &grid[x - 1, y - 1, z - 1, 0]
 
     # Now calculate the needed derivatives using a central difference scheme
     # Note that this is calculated using the STAGGERED derivative
