@@ -15,6 +15,12 @@ cpdef go(int N_x, int N_y, int N_z, int N_t,                                    
 
     cdef:
         int xx, yy, zz, tt
+        Field *curr_grid_element
+        FILE *fp
+
+
+    # Set the output file
+    fp = fopen("output.txt", "w")
 
     # Plug in any relevant boundary conditions (manually)
     ### BC code here ###
@@ -25,13 +31,13 @@ cpdef go(int N_x, int N_y, int N_z, int N_t,                                    
     # Run the simulation
     for tt in np.linspace(t_0, t_f, N_t):
         # First loop over the grid and calculate all changes
-        for xx in range(N_x):
-            for yy in range(N_y):
-                for zz in range(N_z):
+        for xx in range(1, N_x + 1):
+            for yy in range(1, N_y + 1):
+                for zz in range(1, N_z + 1):
                     # Calculate the changes in stress
-                    update_stresses(grid, xx, yy, zz
-                                  dx, dy, dz,
-                                  dt, mu, lamd, rho)
+                    update_stresses(grid, xx, yy, zz,
+                                    dx, dy, dz,
+                                    dt, mu, lamd, rho)
 
                     # Calculate the changes in velocities
                     update_velocities(grid, xx, yy, zz,
@@ -41,10 +47,19 @@ cpdef go(int N_x, int N_y, int N_z, int N_t,                                    
         # Now we have to loop again, because we can't add in the changes until
         # we have calculated the change for EVERY grid point (otherwise some grid points
         # will calculate the new values at timestep n+1 using other grid point values at timestep n+1)
-        for xx in range(N_x):
-            for yy in range(N_y):
-                for zz in range(N_z):
-                    (<Field *> &grid[xx, yy, zz, 0]).update()
+        for xx in range(1, N_x + 1):
+            for yy in range(1, N_y + 1):
+                for zz in range(1, N_z + 1):
+                    curr_grid_element = (<Field *> &grid[xx, yy, zz, 0])
+                    curr_grid_element.update()
+
+                    # And print the data to the output file
+                    fprintf("%f %f %f %f %f %f %f %f %f %f %f %f %f",
+                                            tt, xx, yy, zz, curr_grid_element.s11,
+                                            curr_grid_element.s12, curr_grid_element.s13,
+                                            curr_grid_element.s22, curr_grid_element.s23,
+                                            curr_grid_element.s33, curr_grid_element.u,
+                                            curr_grid_element.v, curr_grid_element.w)
 
 cdef set_up_ghost_regions(np.float64_t [:, :, :, :] grid,                           # Our grid
                          int N_x, int N_y, int N_z):        # Number of non-ghost points in each dimension

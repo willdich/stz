@@ -1,27 +1,31 @@
 import numpy as np
-from fields import Field
+
+# Automatic Cython file compilation
+import pyximport
+pyximport.install(setup_args={"include_dirs":np.get_include()},
+        reload_support = True)
+
 from sim import go
-from update_fields import *
 
 if name == '__main__':
     
     # Inputs for the material lame parameters and density
-    lamd = 0
-    mu = 0
-    rho = 0
+    lamd = 1
+    mu = 1
+    rho = 1
 
     # Minimum and maximum coordinates in each dimension
-    max_x = 0
+    max_x = 5 
     min_x = 0
-    max_y = 0
+    max_y = 5
     min_y = 0
-    max_z = 0
+    max_z = 5
     min_z = 0
 
     # Number of grid points in each dimension
-    N_x = 0
-    N_y = 0
-    N_z = 0 
+    N_x = 100 
+    N_y = 100
+    N_z = 100
 
     # Grid spacing in each dimension
     dx = (max_x - min_x) / N_x
@@ -30,8 +34,8 @@ if name == '__main__':
 
     # Total simulation time and number of time points
     t_0 = 0
-    t_f = 100
-    N_t = 0
+    t_f = 1
+    N_t = 100 
     dt = (t_f - t_0) / N_t
 
     # Number of parameters stored at each grid point 
