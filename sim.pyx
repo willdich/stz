@@ -14,7 +14,8 @@ cpdef go(int N_x, int N_y, int N_z, int N_t,                                    
     """
 
     cdef:
-        int xx, yy, zz, tt
+        int xx, yy, zz
+        float tt
         Field *curr_grid_element
         FILE *fp
 
