@@ -7,9 +7,8 @@ from update_fields import *
 
 cpdef go(int N_x, int N_y, int N_z, int N_t,                                            # Number of grid points in each dimension
          np.float64_t dx, np.float64_t dy, np.float64_t dz, np.float64_t dt,            # Time/spatial discretization
-         np.float64_t ts,                                                               # Time points
          np.float64_t mu, np.float64_t rho, np.float64_t lambd,                         # Material parameters
-         np.float64_t t_0, np.float64_t t_f):#,                                            # Initial and final time
+         np.float64_t t_0, np.float64_t t_f, np.float64_t [:] ts):#,                    # Initial and final time, list of time points
          #np.float64_t [:, :, :, :] grid):
 
     """ Runs the simulation. Boundary conditions need to be put in EXPLICITLY in this file. 
