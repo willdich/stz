@@ -2,10 +2,12 @@ from fields cimport Field
 cimport numpy as np
 from libc.stdlib cimport malloc, free
 from libc.stdio cimport fprintf, fopen, fclose, FILE
+from common import *
 from update_fields import *
 
 cpdef go(int N_x, int N_y, int N_z, int N_t,                                            # Number of grid points in each dimension
          np.float64_t dx, np.float64_t dy, np.float64_t dz, np.float64_t dt,            # Time/spatial discretization
+         np.float64_t ts,                                                               # Time points
          np.float64_t mu, np.float64_t rho, np.float64_t lambd,                         # Material parameters
          np.float64_t t_0, np.float64_t t_f):#,                                            # Initial and final time
          #np.float64_t [:, :, :, :] grid):
@@ -19,7 +21,7 @@ cpdef go(int N_x, int N_y, int N_z, int N_t,                                    
         int xx, yy, zz
         float tt
         Field curr_grid_element
-        Field [N_x, N_y, N_z] grid = <Field> malloc(N_x * N_y * N_z * sizeof(Field))
+        Field *grid = <Field *> malloc(N_x * N_y * N_z * sizeof(Field))
         FILE *fp
 
 
@@ -33,13 +35,14 @@ cpdef go(int N_x, int N_y, int N_z, int N_t,                                    
     for xx in range(N_x + 2):
         for yy in range(N_y + 2):
             for zz in range(N_z + 2):
-                grid[xx, yy, zz] = Field.__new__(Field)
+                # grid[xx, yy, zz] = Field.__new__(Field)
+                set_val(grid, N_x, N_y, N_z, xx, yy, zz, Field.__new__(Field))
 
     # Update the ghost regions to enforce periodicity
     set_up_ghost_regions(grid, N_x, N_y, N_z)
 
     # Run the simulation
-    for tt in np.linspace(t_0, t_f, N_t):
+    for tt in ts:
         # First loop over the grid and calculate all changes
         for xx in range(1, N_x + 1):
             for yy in range(1, N_y + 1):
@@ -60,8 +63,8 @@ cpdef go(int N_x, int N_y, int N_z, int N_t,                                    
         for xx in range(1, N_x + 1):
             for yy in range(1, N_y + 1):
                 for zz in range(1, N_z + 1):
-                    curr_grid_element = (grid[xx, yy, zz])
-                    curr_grid_element.update()
+                    curr_grid_element = look_up(grid, N_x, N_y, N_z, xx, yy, zz)
+                    (curr_grid_element).update()
 
                     # And print the data to the output file
                     fprintf(fp, "%f %f %f %f %f %f %f %f %f %f %f %f %f",
@@ -74,7 +77,7 @@ cpdef go(int N_x, int N_y, int N_z, int N_t,                                    
         # And close the output file
         fclose(fp)
 
-cdef set_up_ghost_regions(Field [:, :, :] grid,               # Our grid
+cdef set_up_ghost_regions(Field *grid,                                  # Our grid
                           int N_x, int N_y, int N_z):                   # Number of non-ghost points in each dimension
 
     """ Sets the ghost regions as necessary. In the serial implementation, this is just simple 
@@ -95,20 +98,31 @@ cdef set_up_ghost_regions(Field [:, :, :] grid,               # Our grid
             # zz = N_z + 1 corresponds to the "ghost plane" at the top
             # So we identify the ghost region at the base with the topmost "non-ghost" point
             # And the ghost region at the top with the bottommost "non-ghost" point
-            grid[xx, yy, 0] = grid[xx, yy, N_z]
-            grid[xx, yy, N_z + 1] = grid[xx, yy, 1]
+            
+            # grid[xx, yy, 0] = grid[xx, yy, N_z]
+            set_val(grid, N_x, N_y, N_z, xx, yy, 0, look_up(grid, N_x, N_y, N_z, xx, yy, N_z))
+
+            # grid[xx, yy, N_z + 1] = grid[xx, yy, 1]
+            set_val(grid, N_x, N_y, N_z, xx, yy, N_z + 1, look_up(grid, N_x, N_y, N_z, xx, yy, 1))
 
 
     # Now do the same thing for the x periodicity
     for yy in range(1, N_y + 1):
         for zz in range(1, N_z + 1):
             # See comments in the above loop for explanation
-            grid[0, yy, zz] = grid[N_x, yy, zz]
-            grid[N_x + 1, yy, zz] = grid[1, yy, zz]
+
+            # grid[0, yy, zz] = grid[N_x, yy, zz]
+            set_val(grid, N_x, N_y, N_z, 0, yy, zz, look_up(grid, N_x, N_y, N_z, N_x, yy, zz))
+
+            # grid[N_x + 1, yy, zz] = grid[1, yy, zz]
+            set_val(grid, N_x, N_y, N_z, N_x + 1, yy, zz, look_up(grid, N_x, N_y, N_z, 1, yy, zz))
 
     # And finally the y periodicity
     for xx in range(1, N_x + 1):
         for zz in range(1, N_z + 1):
             # See comments in the above loop for explanation
-            grid[xx, 0, zz] = grid[xx, N_y, zz]
-            grid[xx, N_y + 1, zz] = grid[xx, 1, zz]
+            # grid[xx, 0, zz] = grid[xx, N_y, zz]
+            set_val(grid, N_x, N_y, N_z, xx, 0, zz, look_up(grid, N_x, N_y, N_z, xx, N_y, zz))
+
+            # grid[xx, N_y + 1, zz] = grid[xx, 1, zz]
+            set_val(grid, N_x, N_y, N_z, xx, N_y + 1, zz, look_up(grid, N_x, N_y, N_z, xx, 1, zz))

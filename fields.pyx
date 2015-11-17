@@ -8,12 +8,12 @@ cdef class Field:
     """
 
     # Initialize the relevant values
-    def __cinit__(self, np.float64_t u, np.float64_t v, np.float64_t w,        
-                    np.float64_t s11, np.float64_t s12, np.float64_t s13,      
-                    np.float64_t s22, np.float64_t s23, np.float64_t s33,      
-                    np.float64_t chi, np.float64_t cu, np.float64_t cv, np.float64_t cw,         
-                    np.float64_t cs11, np.float64_t cs12, np.float64_t cs13,
-                    np.float64_t cs22, np.float64_t cs23, np.float64_t cs33, np.float64_t cchi):              
+    def __init__(self, np.float64_t u=0, np.float64_t v=0, np.float64_t w=0,        
+                    np.float64_t s11=0, np.float64_t s12=0, np.float64_t s13=0,      
+                    np.float64_t s22=0, np.float64_t s23=0, np.float64_t s33=0,      
+                    np.float64_t chi=0, np.float64_t cu=0, np.float64_t cv=0, np.float64_t cw=0,         
+                    np.float64_t cs11=0, np.float64_t cs12=0, np.float64_t cs13=0,
+                    np.float64_t cs22=0, np.float64_t cs23=0, np.float64_t cs33=0, np.float64_t cchi=0):              
 
         self.u = u                  # x velocity
         self.v = v                  # y velocity

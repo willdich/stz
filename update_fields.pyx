@@ -1,8 +1,10 @@
 cimport numpy as np
+from common cimport *
 from fields cimport Field
 
-cdef update_stresses(Field [:, :, :] grid,                           # Grid of field values
+cdef update_stresses(Field *grid,                                              # Grid of field values
                       int x, int y, int z,                                     # Location in the grid
+                      int N_x, int N_y, int N_z,                               # Grid sizes (for lookup)
                       np.float64_t dx, np.float64_t dy, np.float64_t dz,       # Spatial discretization
                       np.float64_t dt,                                         # Time discretization
                       np.float64_t lam, np.float64_t mu):                      # Material Parameters
@@ -21,7 +23,7 @@ cdef update_stresses(Field [:, :, :] grid,                           # Grid of f
         np.float64_t sig_trace
 
     # Look up the field at the current grid point
-    curr_field_value = grid[x, y, z]
+    curr_field_value = look_up(grid, N_x, N_y, N_z, x, y, z)
 
     # Calculate the trace because it shows up in a few places
     sig_trace = curr_field_value.s11 + curr_field_value.s22 + curr_field_value.s33
@@ -37,8 +39,9 @@ cdef update_stresses(Field [:, :, :] grid,                           # Grid of f
     curr_field_value.cs13 = dt * 2 * mu * curr_field_value.cs13
     curr_field_value.cs23 = dt * 2 * mu * curr_field_value.cs23
 
-cdef update_velocities(Field [:, :, :] grid,                                   # Grid of field values
+cdef update_velocities(Field *grid,                                            # Grid of field values
                       int x, int y, int z,                                     # Location in the grid
+                      int N_x, int N_y, int N_z,                               # Grid sizes (for lookup)
                       np.float64_t dx, np.float64_t dy, np.float64_t dz,       # Spatial discretization
                       np.float64_t dt,                                         # Time discretization
                       np.float64_t rho):                                       # Material density
@@ -88,17 +91,38 @@ cdef update_velocities(Field [:, :, :] grid,                                   #
     # First look up the corresponding grid values 
     # We cast the all the floats at the corresponding grid points to a Field pointer (telling Cython to
     # interpret the following memory as a field) and then dereference it to get the Field back
-    me = grid[x, y, z]
-    xp = grid[x + 1, y, z]
-    xm = grid[x - 1, y, z]
-    yp = grid[x, y + 1, z]
-    ym = grid[x, y - 1, z]
-    zp = grid[x, y, z + 1]
-    zm = grid[x, y, z - 1]
-    xm_ym = grid[x - 1, y - 1, z]
-    xm_zm = grid[x - 1, y, z - 1]
-    ym_zm = grid[x, y - 1, z - 1]
-    xm_ym_zm = grid[x - 1, y - 1, z - 1]
+    #me = grid[x, y, z]
+    me = look_up(grid, N_x, N_y, N_z, x, y, z)
+
+    #xp = grid[x + 1, y, z]
+    xp = look_up(grid, N_x, N_y, N_z, x + 1, y, z)
+
+    #xm = grid[x - 1, y, z]
+    xm = look_up(grid, N_x, N_y, N_z, x - 1, y, z)
+
+    #yp = grid[x, y + 1, z]
+    yp = look_up(grid, N_x, N_y, N_z, x, y + 1, z)
+
+    #ym = grid[x, y - 1, z]
+    ym = look_up(grid, N_x, N_y, N_z, x, y - 1, z)
+
+    #zp = grid[x, y, z + 1]
+    zp = look_up(grid, N_x, N_y, N_z, x, y, z + 1)
+
+    #zm = grid[x, y, z - 1]
+    zm = look_up(grid, N_x, N_y, N_z, x, y, z - 1)
+
+    #xm_ym = grid[x - 1, y - 1, z]
+    xm_ym = look_up(grid, N_x, N_y, N_z, x - 1, y - 1, z)
+
+    #xm_zm = grid[x - 1, y, z - 1]
+    xm_zm = look_up(grid, N_x, N_y, N_z, x - 1, y, z - 1)
+
+    #ym_zm = grid[x, y - 1, z - 1]
+    ym_zm = look_up(grid, N_x, N_y, N_z, x, y - 1, z - 1)
+
+    #xm_ym_zm = grid[x - 1, y - 1, z - 1]
+    xm_ym_zm = look_up(grid, N_x, N_y, N_z, x - 1, y - 1, z - 1)
 
     # Now calculate the needed derivatives using a central difference scheme
     # Note that this is calculated using the STAGGERED derivative

@@ -36,6 +36,7 @@ if __name__ == '__main__':
     t_0 = 0
     t_f = 1
     N_t = 100 
+    ts = np.linspace(t_0, t_f, N_t)
     dt = (t_f - t_0) / N_t
 
     # Number of parameters stored at each grid point 
@@ -46,8 +47,9 @@ if __name__ == '__main__':
 #    grid = np.zeros( (N_x + 2, N_y + 2, N_z + 2, num_params), dtype=np.float64_t )
 
     # Run the simulation
-    go(N_x, N_y, N_z, N_t,
-       np.float64(dx), np.float64(dy), np.float64(dz), np.float64(dt),
-       np.float64(mu), np.float64(rho), np.float64(lambd),
-       np.float64(t_0), np.float64(t_f))
-#       grid)
+    with nogil:
+        go(N_x, N_y, N_z, N_t,
+           np.float64(dx), np.float64(dy), np.float64(dz), np.float64(dt),
+           np.float64(mu), np.float64(rho), np.float64(lambd),
+           np.float64(t_0), np.float64(t_f), ts)
+    #       grid)
