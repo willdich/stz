@@ -7,10 +7,10 @@ pyximport.install(setup_args={"include_dirs":np.get_include()},
 
 from sim import go
 
-if name == '__main__':
+if __name__ == '__main__':
     
     # Inputs for the material lame parameters and density
-    lamd = 1
+    lambd = 1
     mu = 1
     rho = 1
 
@@ -43,10 +43,11 @@ if name == '__main__':
 
     # Instantiate the grid
     # +2 for ghost regions at the edge
-    grid = np.zeros( (N_x + 2, N_y + 2, N_z + 2, num_params), dtype=np.float64_t )
+#    grid = np.zeros( (N_x + 2, N_y + 2, N_z + 2, num_params), dtype=np.float64_t )
 
     # Run the simulation
     go(N_x, N_y, N_z, N_t,
-       np.float64_t(dx), np.float64_t(dy), np.float64_t(dz), np.float64_t(dt),
-       np.float64_t(mu), np.float64_t(rho), np.float64_t(lambd),
-       grid)
+       np.float64(dx), np.float64(dy), np.float64(dz), np.float64(dt),
+       np.float64(mu), np.float64(rho), np.float64(lambd),
+       np.float64(t_0), np.float64(t_f))
+#       grid)

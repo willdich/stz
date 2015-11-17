@@ -37,7 +37,7 @@ cdef class Field:
         self.cchi = cchi            # Change in the effective temperature
 
     # Update the values using the (already calculated) changes.
-    cdef update(self):
+    cdef void update(self):
         self.u += self.cu
         self.v += self.cv
         self.w += self.cw

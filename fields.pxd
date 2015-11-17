@@ -1,7 +1,6 @@
 cimport numpy as np
 
 cdef class Field:
-
     cdef:
         np.float64_t u                   # x velocity
         np.float64_t v                   # y velocity
@@ -24,4 +23,4 @@ cdef class Field:
         np.float64_t cs33
         np.float64_t cchi                # Change in the effective temperature
 
-    cdef update(self)
+    cdef void update(self)

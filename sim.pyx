@@ -1,12 +1,14 @@
 from fields cimport Field
 cimport numpy as np
+from libc.stdlib cimport malloc, free
+from libc.stdio cimport fprintf, fopen, fclose, FILE
 from update_fields import *
 
 cpdef go(int N_x, int N_y, int N_z, int N_t,                                            # Number of grid points in each dimension
          np.float64_t dx, np.float64_t dy, np.float64_t dz, np.float64_t dt,            # Time/spatial discretization
          np.float64_t mu, np.float64_t rho, np.float64_t lambd,                         # Material parameters
-         np.float64_t t_0, np.float64_t t_f,                                            # Initial and final time
-         np.float64_t [:, :, :, :] grid):
+         np.float64_t t_0, np.float64_t t_f):#,                                            # Initial and final time
+         #np.float64_t [:, :, :, :] grid):
 
     """ Runs the simulation. Boundary conditions need to be put in EXPLICITLY in this file. 
     Grid is assumed to be of size N_x x N_y x N_z. The fourth dimension of the variable grid are all
@@ -16,7 +18,8 @@ cpdef go(int N_x, int N_y, int N_z, int N_t,                                    
     cdef:
         int xx, yy, zz
         float tt
-        Field *curr_grid_element
+        Field curr_grid_element
+        Field [N_x, N_y, N_z] grid = <Field> malloc(N_x * N_y * N_z * sizeof(Field))
         FILE *fp
 
 
@@ -25,6 +28,12 @@ cpdef go(int N_x, int N_y, int N_z, int N_t,                                    
 
     # Plug in any relevant boundary conditions (manually)
     ### BC code here ###
+
+    # Instantiate the grid
+    for xx in range(N_x + 2):
+        for yy in range(N_y + 2):
+            for zz in range(N_z + 2):
+                grid[xx, yy, zz] = Field.__new__(Field)
 
     # Update the ghost regions to enforce periodicity
     set_up_ghost_regions(grid, N_x, N_y, N_z)
@@ -51,7 +60,7 @@ cpdef go(int N_x, int N_y, int N_z, int N_t,                                    
         for xx in range(1, N_x + 1):
             for yy in range(1, N_y + 1):
                 for zz in range(1, N_z + 1):
-                    curr_grid_element = (<Field *> &grid[xx, yy, zz, 0])
+                    curr_grid_element = (grid[xx, yy, zz])
                     curr_grid_element.update()
 
                     # And print the data to the output file
@@ -65,7 +74,7 @@ cpdef go(int N_x, int N_y, int N_z, int N_t,                                    
         # And close the output file
         fclose(fp)
 
-cdef set_up_ghost_regions(np.float64_t [:, :, :, :] grid,               # Our grid
+cdef set_up_ghost_regions(Field [:, :, :] grid,               # Our grid
                           int N_x, int N_y, int N_z):                   # Number of non-ghost points in each dimension
 
     """ Sets the ghost regions as necessary. In the serial implementation, this is just simple 
@@ -86,20 +95,20 @@ cdef set_up_ghost_regions(np.float64_t [:, :, :, :] grid,               # Our gr
             # zz = N_z + 1 corresponds to the "ghost plane" at the top
             # So we identify the ghost region at the base with the topmost "non-ghost" point
             # And the ghost region at the top with the bottommost "non-ghost" point
-            <Field *> &grid[xx, yy, 0, 0] = <Field *> &grid[xx, yy, N_z, 0]
-            <Field *> &grid[xx, yy, N_z + 1, 0] = <Field *> &grid[xx, yy, 1, 0]
+            grid[xx, yy, 0] = grid[xx, yy, N_z]
+            grid[xx, yy, N_z + 1] = grid[xx, yy, 1]
 
 
     # Now do the same thing for the x periodicity
     for yy in range(1, N_y + 1):
         for zz in range(1, N_z + 1):
             # See comments in the above loop for explanation
-            <Field *> &grid[0, yy, zz, 0] = <Field *> &grid[N_x, yy, zz, 0]
-            <Field *> &grid[N_x + 1, yy, zz, 0] = <Field *> &grid[1, yy, zz, 0]
+            grid[0, yy, zz] = grid[N_x, yy, zz]
+            grid[N_x + 1, yy, zz] = grid[1, yy, zz]
 
     # And finally the y periodicity
     for xx in range(1, N_x + 1):
         for zz in range(1, N_z + 1):
             # See comments in the above loop for explanation
-            <Field *> &grid[xx, 0, zz, 0] = <Field *> &grid[xx, N_y, zz, 0]
-            <Field *> &grid[xx, N_y + 1, zz, 0] = <Field *> &grid[xx, 1, zz, 0]
+            grid[xx, 0, zz] = grid[xx, N_y, zz]
+            grid[xx, N_y + 1, zz] = grid[xx, 1, zz]
