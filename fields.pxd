@@ -1,6 +1,13 @@
 cimport numpy as np
 
 cdef class Field:
+
+    """ Definition of the Field class, to go along with the implementation provided in fields.pyx.
+    Holds the value of the velocity, the stress, the effective temperature, and the changes in all of these
+    quantities to be added to calculate the values at the next time point. Grid is implemented as a 3D array of
+    Fields.
+    """
+
     cdef:
         np.float64_t u                   # x velocity
         np.float64_t v                   # y velocity
