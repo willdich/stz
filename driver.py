@@ -10,17 +10,17 @@ from sim import go
 if __name__ == '__main__':
     
     # Inputs for the material lame parameters and density
-    lambd = 1
-    mu = 1
-    rho = 1
+    lambd = 1.
+    mu = 1.
+    rho = 1.
 
     # Minimum and maximum coordinates in each dimension
-    max_x = 100 
-    min_x = 0
-    max_y = 100 
-    min_y = 0
-    max_z = 100 
-    min_z = 0
+    max_x = 100. 
+    min_x = 0.
+    max_y = 100.
+    min_y = 0.
+    max_z = 100. 
+    min_z = 0.
 
     # Number of grid points in each dimension
     N_x = 100 
@@ -33,10 +33,9 @@ if __name__ == '__main__':
     dz = (max_z - min_z) / N_z
 
     # Total simulation time and number of time points
-    t_0 = 0
-    t_f = 1
+    t_0 = 0.
+    t_f = 1.
     N_t = 100 
-    ts = np.linspace(t_0, t_f, N_t)
     dt = (t_f - t_0) / N_t
 
     # Run the simulation

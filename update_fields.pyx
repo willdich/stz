@@ -2,7 +2,7 @@ cimport numpy as np
 from common cimport *
 from fields cimport Field
 
-cdef void update_stresses(Field *grid,                                              # Grid of field values
+cdef void update_stresses(Field *grid,                                         # Grid of field values
                       int x, int y, int z,                                     # Location in the grid
                       int N_x, int N_y, int N_z,                               # Grid sizes (for lookup)
                       np.float64_t dx, np.float64_t dy, np.float64_t dz,       # Spatial discretization
@@ -16,28 +16,76 @@ cdef void update_stresses(Field *grid,                                          
 
     # Store our needed variables
     cdef:
-        # The value at the current grid point: this is what we are updating
-        Field *curr_field_value
+        Field *me                    # Field value at the currrent location (x, y, z)
+        Field *xp                    # Field value at (x+1, y, z) 
+        Field *yp                    # Field value at (x, y+1, z)
+        Field *zp                    # Field value at (x, y, z+1)
+        Field *xp_yp                 # Field value at (x+1, y+1, z)
+        Field *xp_zp                 # Field value at (x+1, y, z+1)
+        Field *yp_zp                 # Field value at (x, y+1, z+1)
+        Field *xp_yp_zp              # Field value at (x+1, y+1, z+1)
 
-        # The trace of the local stress tensor
-        np.float64_t sig_trace
+        np.float64_t du_dx           # Derivatives of velocity components
+        np.float64_t du_dy 
+        np.float64_t du_dz 
+        np.float64_t dv_dx 
+        np.float64_t dv_dy
+        np.float64_t dv_dz
+        np.float64_t dw_dx
+        np.float64_t dw_dy
+        np.float64_t dw_dz 
 
-    # Look up the field at the current grid point
-    curr_field_value = look_up(grid, N_x, N_y, N_z, x, y, z)
+        # The trace of the rate of strain tensor 
+        np.float64_t d_trace  
+        
+        # Convenience quantities
+        np.float64_t rho_inv        # 1/rho
+        np.float64_t dx_inv         # 1/dx
+        np.float64_t dy_inv         # 1/dy
+        np.float64_t dz_inv         # 1/dz
+        
+    # Get the inverse values for simplicity
+    dx_inv = 1. / dx
+    dy_inv = 1. / dy
+    dz_inv = 1. / dz
 
-    # Calculate the trace because it shows up in a few places
-    sig_trace = curr_field_value.s11 + curr_field_value.s22 + curr_field_value.s33
+    # First look up the corresponding grid values 
+    me = look_up(grid, N_x, N_y, N_z, x, y, z)
+    xp = look_up(grid, N_x, N_y, N_z, x + 1, y, z)
+    yp = look_up(grid, N_x, N_y, N_z, x, y + 1, z)
+    zp = look_up(grid, N_x, N_y, N_z, x, y, z + 1)
+    xp_yp = look_up(grid, N_x, N_y, N_z, x + 1, y + 1, z)
+    xp_zp = look_up(grid, N_x, N_y, N_z, x + 1, y, z + 1)
+    yp_zp = look_up(grid, N_x, N_y, N_z, x, y + 1, z + 1)
+    xp_yp_zp = look_up(grid, N_x, N_y, N_z, x + 1, y + 1, z + 1)
+
+    # First calculate all the (staggered) derivatives
+    # See below function for explanation of terms - I wrote that function first
+    du_dx = .25 * dx_inv * (xp.u - me.u + xp_yp.u - yp.u + xp_zp.u - zp.u + xp_yp_zp.u - yp_zp.u)
+    dv_dx = .25 * dx_inv * (xp.v - me.v + xp_yp.v - yp.v + xp_zp.v - zp.v + xp_yp_zp.v - yp_zp.v)
+    dw_dx = .25 * dx_inv * (xp.w - me.w + xp_yp.w - yp.w + xp_zp.w - zp.w + xp_yp_zp.w - yp_zp.w)
+
+    du_dy = .25 * dy_inv * (yp.u - me.u + xp_yp.u - xp.u + yp_zp.u - zp.u + xp_yp_zp.u - xp_zp.u) 
+    dv_dy = .25 * dy_inv * (yp.v - me.v + xp_yp.v - xp.v + yp_zp.v - zp.v + xp_yp_zp.v - xp_zp.v) 
+    dw_dy = .25 * dy_inv * (yp.w - me.w + xp_yp.w - xp.w + yp_zp.w - zp.w + xp_yp_zp.w - xp_zp.w) 
+
+    du_dz = .25 * dz_inv * (zp.u - me.u + xp_zp.u - xp.u + yp_zp.u - yp.u + xp_yp_zp.u - xp_yp.u) 
+    dv_dz = .25 * dz_inv * (zp.v - me.v + xp_zp.v - xp.v + yp_zp.v - yp.v + xp_yp_zp.v - xp_yp.v) 
+    dw_dz = .25 * dz_inv * (zp.w - me.w + xp_zp.w - xp.w + yp_zp.w - yp.w + xp_yp_zp.w - xp_yp.w) 
+
+    # Store the trace for simplicity
+    d_trace = .5 * (du_dx + dv_dy + dw_dz)
 
     # Now calculate the corresponding changes in stresses
-    # First the diagonal terms, which have a contribution from the trace of the stress tensor
-    curr_field_value.cs11 = dt * (lam * sig_trace + 2 * mu * curr_field_value.s11)
-    curr_field_value.cs22 = dt * (lam * sig_trace + 2 * mu * curr_field_value.s22)
-    curr_field_value.cs33 = dt * (lam * sig_trace + 2 * mu * curr_field_value.s33)
+    # First the diagonal terms, which have a contribution from the trace of D
+    me.cs11 = dt * (lam * d_trace + 2 * mu * du_dx)
+    me.cs22 = dt * (lam * d_trace + 2 * mu * dv_dy)
+    me.cs33 = dt * (lam * d_trace + 2 * mu * dw_dz)
 
     # And now calculate the updates for the off diagonal elements
-    curr_field_value.cs12 = dt * 2 * mu * curr_field_value.cs12
-    curr_field_value.cs13 = dt * 2 * mu * curr_field_value.cs13
-    curr_field_value.cs23 = dt * 2 * mu * curr_field_value.cs23
+    me.cs12 = dt * mu * (du_dy + dv_dx)
+    me.cs13 = dt * mu * (du_dz + dw_dx)
+    me.cs23 = dt * mu * (dv_dz + dw_dy)
 
 cdef void update_velocities(Field *grid,                                        # Grid of field values
                       int x, int y, int z,                                     # Location in the grid
@@ -56,11 +104,8 @@ cdef void update_velocities(Field *grid,                                        
     # Store our our needed variables
     cdef:
         Field *me                    # Field value at the currrent location (x, y, z)
-        Field *xp                    # Field value at (x+1, y, z) 
         Field *xm                    # Field value to the left (x-1, y, z)
-        Field *yp                    # Field value at (x, y+1, z)
         Field *ym                    # Field value at (x, y-1, z)
-        Field *zp                    # Field value at (x, y, z+1)
         Field *zm                    # Field value at (x, y, z-1)
         Field *xm_ym                 # Field value at (x-1, y-1, z)
         Field *xm_zm                 # Field value at (x-1, y, z-1)
@@ -89,39 +134,13 @@ cdef void update_velocities(Field *grid,                                        
     dz_inv = 1. / dz
 
     # First look up the corresponding grid values 
-    # We cast the all the floats at the corresponding grid points to a Field pointer (telling Cython to
-    # interpret the following memory as a field) and then dereference it to get the Field back
-    #me = grid[x, y, z]
     me = look_up(grid, N_x, N_y, N_z, x, y, z)
-
-    #xp = grid[x + 1, y, z]
-    xp = look_up(grid, N_x, N_y, N_z, x + 1, y, z)
-
-    #xm = grid[x - 1, y, z]
     xm = look_up(grid, N_x, N_y, N_z, x - 1, y, z)
-
-    #yp = grid[x, y + 1, z]
-    yp = look_up(grid, N_x, N_y, N_z, x, y + 1, z)
-
-    #ym = grid[x, y - 1, z]
     ym = look_up(grid, N_x, N_y, N_z, x, y - 1, z)
-
-    #zp = grid[x, y, z + 1]
-    zp = look_up(grid, N_x, N_y, N_z, x, y, z + 1)
-
-    #zm = grid[x, y, z - 1]
     zm = look_up(grid, N_x, N_y, N_z, x, y, z - 1)
-
-    #xm_ym = grid[x - 1, y - 1, z]
     xm_ym = look_up(grid, N_x, N_y, N_z, x - 1, y - 1, z)
-
-    #xm_zm = grid[x - 1, y, z - 1]
     xm_zm = look_up(grid, N_x, N_y, N_z, x - 1, y, z - 1)
-
-    #ym_zm = grid[x, y - 1, z - 1]
     ym_zm = look_up(grid, N_x, N_y, N_z, x, y - 1, z - 1)
-
-    #xm_ym_zm = grid[x - 1, y - 1, z - 1]
     xm_ym_zm = look_up(grid, N_x, N_y, N_z, x - 1, y - 1, z - 1)
 
     # Now calculate the needed derivatives using a central difference scheme
