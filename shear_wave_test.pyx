@@ -1,8 +1,8 @@
 from fields cimport Field, update 
 cimport numpy as np
 from libc.stdlib cimport malloc, free
-from libc.stdio cimport fprintf, fopen, fclose, FILE
-from libc.math cimport sin, sqrt, pow, fabs
+from libc.stdio cimport printf, fprintf, fopen, fclose, FILE
+cimport libc.math
 from common cimport *
 from update_fields cimport *
 
@@ -27,7 +27,9 @@ cpdef void go(int N_x, int N_y, int N_z, int N_t,                               
         np.float64_t curr_sig_shear, curr_v_shear
         np.float64_t pi = 3.14
 
-    printf("%f %f %f", sin(pi), sin(0), sin(pi/2))
+    fp = fopen("input_params.dat", "w")
+    fprintf(fp, "%f %f %f %f %f %f %f %f %f %f %f %f, %d, %d, %d, %d", L_x, L_y, L_z, dx, dy, dz, dt, mu, rho, lambd, t_0, t_f, N_x, N_y, N_z, N_t) 
+    fclose(fp)
 
     # Initialize the values that every Field will start with.
     for xx in range(20):
@@ -80,21 +82,23 @@ cpdef void go(int N_x, int N_y, int N_z, int N_t,                               
                     curr_grid_element = look_up(grid, N_x, N_y, N_z, xx, yy, zz)
                     update(curr_grid_element) 
 
-                    if ((yy % 10 == 0) and (zz % 10 == 0)):
+                    if ((yy == 1) and (zz == 1)):
+                        #printf("%d %f %d %f %d %f \n", xx, xx * dx, yy, yy * dy, zz, zz * dz)
 
                         # Calculate the value of the shear waves
                         curr_sig_shear = shear_wave_sig(xx * dx, L_x, tt, mu, rho)
                         curr_v_shear = shear_wave_v(xx * dx, L_x, tt, mu, rho)
 
                         # And print the data to the output file
-                        fprintf(fp, "%f %f %f %f %f %f %f %f \n",
-                                                tt, xx*dx, yy*dy, zz*dy,
+                        fprintf(fp, "%f %f %f %f %f %f %f %f %f %f\n",
+                                                tt, xx*dx, yy*dy, zz*dz,
                                                 curr_grid_element.v, curr_grid_element.s12,
-                                                pow(fabs(curr_grid_element.v - curr_v_shear), 2),
-                                                pow(fabs(curr_grid_element.s12 - curr_sig_shear), 2))
+                                                curr_v_shear, curr_sig_shear,
+                                                libc.math.pow(libc.math.fabs(curr_grid_element.v - curr_v_shear), 2),
+                                                libc.math.pow(libc.math.fabs(curr_grid_element.s12 - curr_sig_shear), 2))
 
-        # And close the output file
-        fclose(fp)
+    # And close the output file
+    fclose(fp)
 
     free(grid)
     
@@ -156,7 +160,7 @@ cdef void set_boundary_conditions(Field *grid,                                  
     """ Instantiates shear wave boundary/initial conditions """
     cdef:
         int xx, yy, zz                                        # Loop indices
-        np.float64_t c_s = sqrt(mu / rho)                     # Shear wave speed
+        np.float64_t c_s = libc.math.sqrt(mu / rho)                     # Shear wave speed
         np.float64_t pi = 3.14159265359
         Field *curr_field
 
@@ -164,8 +168,8 @@ cdef void set_boundary_conditions(Field *grid,                                  
         for yy in range(1, N_y):
             for zz in range(1, N_z):
                 curr_field = look_up(grid, N_x, N_y, N_z, xx, yy, zz)
-                curr_field.s12 = - rho * c_s * sin(xx / (2 * pi * L_x))
-                curr_field.v = sin(xx / (2 * pi * L_x))
+                curr_field.s12 = - rho * c_s * libc.math.sin(xx / (2 * pi * L_x))
+                curr_field.v = libc.math.sin(xx / (2 * pi * L_x))
 
 cdef np.float64_t shear_wave_v(np.float64_t xx, np.float64_t L_x, np.float64_t tt,
                                np.float64_t mu, np.float64_t rho) nogil:
@@ -173,13 +177,13 @@ cdef np.float64_t shear_wave_v(np.float64_t xx, np.float64_t L_x, np.float64_t t
     """ Returns the value of a velocity shear wave located in plane x=xx at time tt """
 
     cdef np.float64_t pi = 3.14159265359
-    cdef np.float64_t c_s = sqrt(mu / rho)
+    cdef np.float64_t c_s = libc.math.sqrt(mu / rho)
 
-    return sin(1 / (2 * pi * L_x) * (xx - c_s * tt))
+    return libc.math.sin(1 / (2 * pi * L_x) * (xx - c_s * tt))
 
 cdef np.float64_t shear_wave_sig(np.float64_t xx, np.float64_t L_x, np.float64_t tt,
                                  np.float64_t mu, np.float64_t rho) nogil:
 
     """ Returns the value of a shear-stress shear wave located in plane x=xx at time tt """
 
-    return -rho * sqrt(mu / rho) * shear_wave_v(xx, L_x, tt, mu, rho)
+    return -rho * libc.math.sqrt(mu / rho) * shear_wave_v(xx, L_x, tt, mu, rho)

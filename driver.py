@@ -39,15 +39,15 @@ if __name__ == '__main__':
 
     # Total simulation time and number of time points
     t_0 = 0.
-    t_f = 1.
-    N_t = 100 
+    t_f = 10.
+    N_t = 1000 
     dt = (t_f - t_0) / N_t
 
     # Run the simulation
     go(N_x, N_y, N_z, N_t,
-       np.float64(dx), np.float64(dy), np.float64(dz), np.float64(dt),
-       np.float64(max_x) - np.float64(min_x),
-       np.float64(max_y) - np.float64(min_y),
-       np.float64(max_z) - np.float64(min_z),
-       np.float64(mu), np.float64(rho), np.float64(lambd),
-       np.float64(t_0), np.float64(t_f))
+       np.float64(max_x) - np.float64(min_x),                               # L_x
+       np.float64(max_y) - np.float64(min_y),                               # L_y
+       np.float64(max_z) - np.float64(min_z),                               # L_z
+       np.float64(dx), np.float64(dy), np.float64(dz), np.float64(dt),      # dx, dy, dz, dt
+       np.float64(mu), np.float64(rho), np.float64(lambd),                  # mu, rho, lambda
+       np.float64(t_0), np.float64(t_f))                                    # t_0, t_f
