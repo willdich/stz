@@ -25,6 +25,9 @@ cpdef void go(int N_x, int N_y, int N_z, int N_t,                               
         FILE *fp
         np.float64_t [20] initial_field_values
         np.float64_t curr_sig_shear, curr_v_shear
+        np.float64_t pi = 3.14
+
+    printf("%f %f %f", sin(pi), sin(0), sin(pi/2))
 
     # Initialize the values that every Field will start with.
     for xx in range(20):
@@ -80,12 +83,12 @@ cpdef void go(int N_x, int N_y, int N_z, int N_t,                               
                     if ((yy % 10 == 0) and (zz % 10 == 0)):
 
                         # Calculate the value of the shear waves
-                        curr_sig_shear = shear_wave_sig(xx, L_x, tt, mu, rho)
-                        curr_v_shear = shear_wave_v(xx, L_x, tt, mu, rho)
+                        curr_sig_shear = shear_wave_sig(xx * dx, L_x, tt, mu, rho)
+                        curr_v_shear = shear_wave_v(xx * dx, L_x, tt, mu, rho)
 
                         # And print the data to the output file
-                        fprintf(fp, "%f %f %f %f %f %f %f %f",
-                                                tt, xx, yy, zz,
+                        fprintf(fp, "%f %f %f %f %f %f %f %f \n",
+                                                tt, xx*dx, yy*dy, zz*dy,
                                                 curr_grid_element.v, curr_grid_element.s12,
                                                 pow(fabs(curr_grid_element.v - curr_v_shear), 2),
                                                 pow(fabs(curr_grid_element.s12 - curr_sig_shear), 2))

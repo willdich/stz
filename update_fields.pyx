@@ -111,6 +111,9 @@ cdef void update_velocities(Field *grid,                                        
         Field *xm_zm                 # Field value at (x-1, y, z-1)
         Field *ym_zm                 # Field value at (x, y-1, z-1)
         Field *xm_ym_zm              # Field value at (x-1, y-1, z-1)
+        Field *xp                    # Field value at (x+1, y, z)
+        Field *yp                    # Field value at (x, y+1, z)
+        Field *zp                    # Field value at (x, y, z+1)
 
         np.float64_t d_s11_dx       # Derivatives of stress components
         np.float64_t d_s12_dy
@@ -126,6 +129,12 @@ cdef void update_velocities(Field *grid,                                        
         np.float64_t dx_inv         # 1/dx
         np.float64_t dy_inv         # 1/dy
         np.float64_t dz_inv         # 1/dz
+
+        np.float64_t grad_sq_u      # Laplacians of the velocities for use with the viscosity term
+        np.float64_t grad_sq_v
+        np.float64_t grad_sq_w
+
+        np.float64_t kap = .05      # viscosity fudge factor to smooth out divergences
         
     # Get the inverse values for simplicity
     rho_inv = 1. / rho
@@ -142,6 +151,9 @@ cdef void update_velocities(Field *grid,                                        
     xm_zm = look_up(grid, N_x, N_y, N_z, x - 1, y, z - 1)
     ym_zm = look_up(grid, N_x, N_y, N_z, x, y - 1, z - 1)
     xm_ym_zm = look_up(grid, N_x, N_y, N_z, x - 1, y - 1, z - 1)
+    xp = look_up(grid, N_x, N_y, N_z, x + 1, y, z)
+    yp = look_up(grid, N_x, N_y, N_z, x, y + 1, z)
+    zp = look_up(grid, N_x, N_y, N_z, x, y, z + 1)
 
     # Now calculate the needed derivatives using a central difference scheme
     # Note that this is calculated using the STAGGERED derivative
@@ -167,7 +179,12 @@ cdef void update_velocities(Field *grid,                                        
     d_s23_dz = .25 * dz_inv * (me.s23 - zm.s23 + xm.s23 - xm_zm.s23 + ym.s23 - ym_zm.s23 + xm_ym.s23 - xm_ym_zm.s23)
     d_s13_dz = .25 * dz_inv * (me.s33 - zm.s33 + xm.s33 - xm_zm.s33 + ym.s33 - ym_zm.s33 + xm_ym.s33 - xm_ym_zm.s33)
 
+    # Now get the Laplacian terms
+    grad_sq_u = dx_inv * dx_inv * (xp.u - 2 * me.u + xm.u) + dy_inv * dy_inv * (yp.u - 2 * me.u + ym.u) + dz_inv * dz_inv * (zp.u - 2 * me.u + zm.u)
+    grad_sq_v = dx_inv * dx_inv * (xp.v - 2 * me.v + xm.v) + dy_inv * dy_inv * (yp.v - 2 * me.v + ym.v) + dz_inv * dz_inv * (zp.v - 2 * me.v + zm.v)
+    grad_sq_w = dx_inv * dx_inv * (xp.w - 2 * me.w + xm.w) + dy_inv * dy_inv * (yp.w - 2 * me.w + ym.w) + dz_inv * dz_inv * (zp.w - 2 * me.w + zm.w)
+
     # Now calculate the updates
-    me.cu = rho_inv * dt * (d_s11_dx + d_s12_dy + d_s13_dz)
-    me.cv = rho_inv * dt * (d_s12_dx + d_s22_dy + d_s23_dz)
-    me.cw = rho_inv * dt * (d_s13_dx + d_s23_dy + d_s33_dz)
+    me.cu = rho_inv * dt * (d_s11_dx + d_s12_dy + d_s13_dz + kap * grad_sq_u)
+    me.cv = rho_inv * dt * (d_s12_dx + d_s22_dy + d_s23_dz + kap * grad_sq_v)
+    me.cw = rho_inv * dt * (d_s13_dx + d_s23_dy + d_s33_dz + kap * grad_sq_w)

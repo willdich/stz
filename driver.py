@@ -1,6 +1,8 @@
 import numpy as np
 from os import environ
 
+# http://stackoverflow.com/questions/2741399/python-pyximporting-a-pyx-that-depends-on-a-native-library
+# Link to math library without having to write setup.py
 environ['LDFLAGS'] = '-Lm -lm'
 
 # Automatic Cython file compilation
