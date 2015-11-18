@@ -23,7 +23,7 @@ cdef struct Field:
     np.float64_t cs33
     np.float64_t cchi                # Change in the effective temperature
 
-cdef inline void update(Field f):
+cdef inline void update(Field *f) nogil:
     f.u += f.cu
     f.v += f.cv
     f.w += f.cw

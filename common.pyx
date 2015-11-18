@@ -7,8 +7,9 @@ cdef Field *look_up(Field *grid, int N_x, int N_y, int N_z,
 
     return &(grid[xx + yy * N_x + zz * N_x * N_y])
 
-cdef void set_val(Field *grid, int N_x, int N_y, int N_z
+cdef void set_val(Field *grid, int N_x, int N_y, int N_z,
              int xx, int yy, int zz, Field *new_val) nogil:
     """ Assigns grid[xx, yy, zz] to new_val """
 
-    grid[xx + yy * N_x + zz * N_x * N_y] = *new_val
+    # Note that [0] is dereferencing in Cython because * is tuple unpacking in Python
+    grid[xx + yy * N_x + zz * N_x * N_y] = new_val[0]

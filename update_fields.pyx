@@ -2,12 +2,12 @@ cimport numpy as np
 from common cimport *
 from fields cimport Field
 
-cdef update_stresses(Field *grid,                                              # Grid of field values
+cdef void update_stresses(Field *grid,                                              # Grid of field values
                       int x, int y, int z,                                     # Location in the grid
                       int N_x, int N_y, int N_z,                               # Grid sizes (for lookup)
                       np.float64_t dx, np.float64_t dy, np.float64_t dz,       # Spatial discretization
                       np.float64_t dt,                                         # Time discretization
-                      np.float64_t lam, np.float64_t mu):                      # Material Parameters
+                      np.float64_t lam, np.float64_t mu) nogil:                # Material Parameters
 
     """ Calculates the updates for the stress tensor s_ij of the field value at grid[x, y, z].
     At the moment, the grid spacing is unnecessary because of the lack of advective terms.
@@ -17,7 +17,7 @@ cdef update_stresses(Field *grid,                                              #
     # Store our needed variables
     cdef:
         # The value at the current grid point: this is what we are updating
-        Field curr_field_value
+        Field *curr_field_value
 
         # The trace of the local stress tensor
         np.float64_t sig_trace
@@ -39,12 +39,12 @@ cdef update_stresses(Field *grid,                                              #
     curr_field_value.cs13 = dt * 2 * mu * curr_field_value.cs13
     curr_field_value.cs23 = dt * 2 * mu * curr_field_value.cs23
 
-cdef update_velocities(Field *grid,                                            # Grid of field values
+cdef void update_velocities(Field *grid,                                        # Grid of field values
                       int x, int y, int z,                                     # Location in the grid
                       int N_x, int N_y, int N_z,                               # Grid sizes (for lookup)
                       np.float64_t dx, np.float64_t dy, np.float64_t dz,       # Spatial discretization
                       np.float64_t dt,                                         # Time discretization
-                      np.float64_t rho):                                       # Material density
+                      np.float64_t rho) nogil:                                 # Material density
 
     """ Calculates the updates for the velocity components of the field value at grid[x, y, z].
     Currently serial. When parallelizing with MPI, we will need some communication at the boundaries here.
@@ -55,17 +55,17 @@ cdef update_velocities(Field *grid,                                            #
 
     # Store our our needed variables
     cdef:
-        Field me                    # Field value at the currrent location (x, y, z)
-        Field xp                    # Field value at (x+1, y, z) 
-        Field xm                    # Field value to the left (x-1, y, z)
-        Field yp                    # Field value at (x, y+1, z)
-        Field ym                    # Field value at (x, y-1, z)
-        Field zp                    # Field value at (x, y, z+1)
-        Field zm                    # Field value at (x, y, z-1)
-        Field xm_ym                 # Field value at (x-1, y-1, z)
-        Field xm_zm                 # Field value at (x-1, y, z-1)
-        Field ym_zm                 # Field value at (x, y-1, z-1)
-        Field xm_ym_zm              # Field value at (x-1, y-1, z-1)
+        Field *me                    # Field value at the currrent location (x, y, z)
+        Field *xp                    # Field value at (x+1, y, z) 
+        Field *xm                    # Field value to the left (x-1, y, z)
+        Field *yp                    # Field value at (x, y+1, z)
+        Field *ym                    # Field value at (x, y-1, z)
+        Field *zp                    # Field value at (x, y, z+1)
+        Field *zm                    # Field value at (x, y, z-1)
+        Field *xm_ym                 # Field value at (x-1, y-1, z)
+        Field *xm_zm                 # Field value at (x-1, y, z-1)
+        Field *ym_zm                 # Field value at (x, y-1, z-1)
+        Field *xm_ym_zm              # Field value at (x-1, y-1, z-1)
 
         np.float64_t d_s11_dx       # Derivatives of stress components
         np.float64_t d_s12_dy

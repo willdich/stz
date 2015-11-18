@@ -15,11 +15,11 @@ if __name__ == '__main__':
     rho = 1
 
     # Minimum and maximum coordinates in each dimension
-    max_x = 5 
+    max_x = 100 
     min_x = 0
-    max_y = 5
+    max_y = 100 
     min_y = 0
-    max_z = 5
+    max_z = 100 
     min_z = 0
 
     # Number of grid points in each dimension
@@ -39,17 +39,8 @@ if __name__ == '__main__':
     ts = np.linspace(t_0, t_f, N_t)
     dt = (t_f - t_0) / N_t
 
-    # Number of parameters stored at each grid point 
-    num_params = 20 
-
-    # Instantiate the grid
-    # +2 for ghost regions at the edge
-#    grid = np.zeros( (N_x + 2, N_y + 2, N_z + 2, num_params), dtype=np.float64_t )
-
     # Run the simulation
-    with nogil:
-        go(N_x, N_y, N_z, N_t,
-           np.float64(dx), np.float64(dy), np.float64(dz), np.float64(dt),
-           np.float64(mu), np.float64(rho), np.float64(lambd),
-           np.float64(t_0), np.float64(t_f), ts)
-    #       grid)
+    go(N_x, N_y, N_z, N_t,
+       np.float64(dx), np.float64(dy), np.float64(dz), np.float64(dt),
+       np.float64(mu), np.float64(rho), np.float64(lambd),
+       np.float64(t_0), np.float64(t_f))
