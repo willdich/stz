@@ -2,10 +2,11 @@ from fields cimport Field
 cimport numpy as np
 from libc.stdlib cimport malloc, free
 from libc.stdio cimport fprintf, fopen, fclose, FILE
-from common import *
+from common cimport *
 from update_fields import *
 
 cpdef go(int N_x, int N_y, int N_z, int N_t,                                            # Number of grid points in each dimension
+         np.float64_t [:] initial_field_values,
          np.float64_t dx, np.float64_t dy, np.float64_t dz, np.float64_t dt,            # Time/spatial discretization
          np.float64_t mu, np.float64_t rho, np.float64_t lambd,                         # Material parameters
          np.float64_t t_0, np.float64_t t_f, np.float64_t [:] ts):#,                    # Initial and final time, list of time points
@@ -35,7 +36,7 @@ cpdef go(int N_x, int N_y, int N_z, int N_t,                                    
         for yy in range(N_y + 2):
             for zz in range(N_z + 2):
                 # grid[xx, yy, zz] = Field.__new__(Field)
-                set_val(grid, N_x, N_y, N_z, xx, yy, zz, *(<Field *> malloc(sizeof(Field))))
+                set_val(grid, N_x, N_y, N_z, xx, yy, zz, <Field *> initial_field_values)
 
     # Update the ghost regions to enforce periodicity
     set_up_ghost_regions(grid, N_x, N_y, N_z)
