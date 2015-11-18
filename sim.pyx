@@ -35,7 +35,7 @@ cpdef go(int N_x, int N_y, int N_z, int N_t,                                    
         for yy in range(N_y + 2):
             for zz in range(N_z + 2):
                 # grid[xx, yy, zz] = Field.__new__(Field)
-                set_val(grid, N_x, N_y, N_z, xx, yy, zz, Field.__new__(Field))
+                set_val(grid, N_x, N_y, N_z, xx, yy, zz, *(<Field *> malloc(sizeof(Field))))
 
     # Update the ghost regions to enforce periodicity
     set_up_ghost_regions(grid, N_x, N_y, N_z)
@@ -76,6 +76,8 @@ cpdef go(int N_x, int N_y, int N_z, int N_t,                                    
         # And close the output file
         fclose(fp)
 
+    free(grid)
+    
 cdef set_up_ghost_regions(Field *grid,                                  # Our grid
                           int N_x, int N_y, int N_z):                   # Number of non-ghost points in each dimension
 
