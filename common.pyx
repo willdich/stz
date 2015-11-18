@@ -13,3 +13,4 @@ cdef void set_val(Field *grid, int N_x, int N_y, int N_z,
 
     # Note that [0] is dereferencing in Cython because * is tuple unpacking in Python
     grid[xx + yy * N_x + zz * N_x * N_y] = new_val[0]
+
