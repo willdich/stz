@@ -20,11 +20,11 @@ if __name__ == '__main__':
     rho = 1.
 
     # Minimum and maximum coordinates in each dimension
-    max_x = 10. 
+    max_x = 5. 
     min_x = 0.
-    max_y = 10.
+    max_y = 5.
     min_y = 0.
-    max_z = 10. 
+    max_z = 5. 
     min_z = 0.
 
     # Number of grid points in each dimension
@@ -40,7 +40,7 @@ if __name__ == '__main__':
     # Total simulation time and number of time points
     t_0 = 0.
     t_f = 2.5
-    N_t = 250 
+    N_t = 100 
     dt = (t_f - t_0) / N_t
 
     # Run the simulation

@@ -25,7 +25,6 @@ cpdef void go(int N_x, int N_y, int N_z, int N_t,                               
         FILE *fp
         np.float64_t [20] initial_field_values
         np.float64_t curr_sig_shear, curr_v_shear
-        np.float64_t pi = 3.14
 
     fp = fopen("input_params.dat", "w")
     fprintf(fp, "%f %f %f %f %f %f %f %f %f %f %f %f, %d, %d, %d, %d", L_x, L_y, L_z, dx, dy, dz, dt, mu, rho, lambd, t_0, t_f, N_x, N_y, N_z, N_t) 
@@ -84,6 +83,7 @@ cpdef void go(int N_x, int N_y, int N_z, int N_t,                               
         for xx in range(1, N_x + 1):
             for yy in range(1, N_y + 1):
                 for zz in range(1, N_z + 1):
+                    # Note that the first update does nothing at the moment - this should be fixed later
                     curr_grid_element = look_up(grid, N_x, N_y, N_z, xx, yy, zz)
                     update(curr_grid_element) 
 
@@ -91,12 +91,14 @@ cpdef void go(int N_x, int N_y, int N_z, int N_t,                               
                         #printf("%d %f %d %f %d %f \n", xx, xx * dx, yy, yy * dy, zz, zz * dz)
 
                         # Calculate the value of the shear waves
+                        # We use xx - 1 because xx = 1 corresponds to x = 0: xx=0 is the ghost region!
                         curr_sig_shear = shear_wave_sig((xx - 1) * dx, L_x, tt, mu, rho)
                         curr_v_shear = shear_wave_v((xx - 1) * dx, L_x, tt, mu, rho)
 
                         # And print the data to the output file
                         fprintf(fp, "%f %f %f %f %f %f %f %f %f %f\n",
-                                                tt, xx*dx, yy*dy, zz*dz,
+                                                # We again use xx-1, yy-1, and zz-1 by the above logic
+                                                tt, (xx-1)*dx, (yy-1)*dy, (zz-1)*dz,
                                                 curr_grid_element.v, curr_grid_element.s12,
                                                 curr_v_shear, curr_sig_shear,
                                                 libc.math.pow(libc.math.fabs(curr_grid_element.v - curr_v_shear), 2),
@@ -108,7 +110,7 @@ cpdef void go(int N_x, int N_y, int N_z, int N_t,                               
     free(grid)
     
 cdef void set_up_ghost_regions(Field *grid,                                  # Our grid
-                          int N_x, int N_y, int N_z) nogil:             # Number of non-ghost points in each dimension
+                          int N_x, int N_y, int N_z) nogil:                  # Number of non-ghost points in each dimension
 
     """ Sets the ghost regions as necessary. In the serial implementation, this is just simple 
     periodic boundary conditions. This function will become more complex when moving to the parallel implementation
@@ -121,8 +123,8 @@ cdef void set_up_ghost_regions(Field *grid,                                  # O
     # Instantiate periodic boundary conditions
     # First handle the z periodicity
     # Note that these bounds need to be checked... should it be 1 to N_x + 1?
-    for xx in range(N_x + 2):
-        for yy in range(N_y + 2):
+    for xx in range(1, N_x + 1):
+        for yy in range(1, N_y + 1):
             # We have 2 + N_z points in the N_z direction
             # zz = 0 corresponds to the "ghost plane" at the base
             # zz = N_z + 1 corresponds to the "ghost plane" at the top
@@ -130,32 +132,32 @@ cdef void set_up_ghost_regions(Field *grid,                                  # O
             # And the ghost region at the top with the bottommost "non-ghost" point
             
             # grid[xx, yy, 0] = grid[xx, yy, N_z]
-            set_val(grid, N_x, N_y, N_z, xx, yy, 0, look_up(grid, N_x, N_y, N_z, xx, yy, N_z))
+            set_val(grid, N_x, N_y, N_z, xx, yy, 0,       look_up(grid, N_x, N_y, N_z, xx, yy, N_z))
 
             # grid[xx, yy, N_z + 1] = grid[xx, yy, 1]
             set_val(grid, N_x, N_y, N_z, xx, yy, N_z + 1, look_up(grid, N_x, N_y, N_z, xx, yy, 1))
 
 
     # Now do the same thing for the x periodicity
-    for yy in range(N_y + 2):
-        for zz in range(N_z + 2):
+    for yy in range(1, N_y + 1):
+        for zz in range(1, N_z + 1):
             # See comments in the above loop for explanation
 
             # grid[0, yy, zz] = grid[N_x, yy, zz]
-            set_val(grid, N_x, N_y, N_z, 0, yy, zz, look_up(grid, N_x, N_y, N_z, N_x, yy, zz))
+            set_val(grid, N_x, N_y, N_z, 0,       yy, zz, look_up(grid, N_x, N_y, N_z, N_x, yy, zz))
 
             # grid[N_x + 1, yy, zz] = grid[1, yy, zz]
-            set_val(grid, N_x, N_y, N_z, N_x + 1, yy, zz, look_up(grid, N_x, N_y, N_z, 1, yy, zz))
+            set_val(grid, N_x, N_y, N_z, N_x + 1, yy, zz, look_up(grid, N_x, N_y, N_z, 1,   yy, zz))
 
     # And finally the y periodicity
-    for xx in range(N_x + 2):
-        for zz in range(N_z + 2):
+    for xx in range(1, N_x + 1):
+        for zz in range(1, N_z + 1):
             # See comments in the above loop for explanation
             # grid[xx, 0, zz] = grid[xx, N_y, zz]
-            set_val(grid, N_x, N_y, N_z, xx, 0, zz, look_up(grid, N_x, N_y, N_z, xx, N_y, zz))
+            set_val(grid, N_x, N_y, N_z, xx, 0,       zz, look_up(grid, N_x, N_y, N_z, xx, N_y, zz))
 
             # grid[xx, N_y + 1, zz] = grid[xx, 1, zz]
-            set_val(grid, N_x, N_y, N_z, xx, N_y + 1, zz, look_up(grid, N_x, N_y, N_z, xx, 1, zz))
+            set_val(grid, N_x, N_y, N_z, xx, N_y + 1, zz, look_up(grid, N_x, N_y, N_z, xx, 1,   zz))
 
     ## Now we need to handle the corner regions
     set_val(grid, N_x, N_y, N_z, 0,         0,       0,             look_up(grid, N_x, N_y, N_z, N_x, N_y, N_z))
@@ -189,8 +191,6 @@ cdef void set_up_ghost_regions(Field *grid,                                  # O
         set_val(grid, N_x, N_y, N_z, N_x + 1, 0,       zz,          look_up(grid, N_x, N_y, N_z, 1,   N_y, zz))
         set_val(grid, N_x, N_y, N_z, 0,       N_y + 1, zz,          look_up(grid, N_x, N_y, N_z, N_x, 1,   zz))
 
-
-
 cdef void set_boundary_conditions(Field *grid,                                                  # Grid
                                   int N_x, int N_y, int N_z,                                    # Number of grid points
                                   np.float64_t dx,                                              # Grid spacing
@@ -200,8 +200,6 @@ cdef void set_boundary_conditions(Field *grid,                                  
     """ Instantiates shear wave boundary/initial conditions """
     cdef:
         int xx, yy, zz                                        # Loop indices
-        np.float64_t c_s = libc.math.sqrt(mu / rho)           # Shear wave speed
-        np.float64_t pi = 3.14159265359
         Field *curr_field
 
     for xx in range(1, N_x + 1):
@@ -219,7 +217,7 @@ cdef np.float64_t shear_wave_v(np.float64_t xx, np.float64_t L_x, np.float64_t t
     cdef np.float64_t pi = 3.14159265359
     cdef np.float64_t c_s = libc.math.sqrt(mu / rho)
 
-    return libc.math.sin(1 / (2 * pi * L_x) * (xx - c_s * tt))
+    return libc.math.sin(2 * pi / (L_x) * (xx - c_s * tt))
 
 cdef np.float64_t shear_wave_sig(np.float64_t xx, np.float64_t L_x, np.float64_t tt,
                                  np.float64_t mu, np.float64_t rho) nogil:

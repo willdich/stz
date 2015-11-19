@@ -1,4 +1,5 @@
 cimport numpy as np
+from libc.stdio cimport printf
 from common cimport *
 from fields cimport Field
 
@@ -50,14 +51,14 @@ cdef void update_stresses(Field *grid,                                         #
     dz_inv = 1. / dz
 
     # First look up the corresponding grid values 
-    me = look_up(grid, N_x, N_y, N_z, x, y, z)
-    xp = look_up(grid, N_x, N_y, N_z, x + 1, y, z)
-    yp = look_up(grid, N_x, N_y, N_z, x, y + 1, z)
-    zp = look_up(grid, N_x, N_y, N_z, x, y, z + 1)
-    xp_yp = look_up(grid, N_x, N_y, N_z, x + 1, y + 1, z)
-    xp_zp = look_up(grid, N_x, N_y, N_z, x + 1, y, z + 1)
-    yp_zp = look_up(grid, N_x, N_y, N_z, x, y + 1, z + 1)
-    xp_yp_zp = look_up(grid, N_x, N_y, N_z, x + 1, y + 1, z + 1)
+    me       =    look_up(grid, N_x, N_y, N_z, x,     y,     z    )
+    xp       =    look_up(grid, N_x, N_y, N_z, x + 1, y,     z    )
+    yp       =    look_up(grid, N_x, N_y, N_z, x,     y + 1, z    )
+    zp       =    look_up(grid, N_x, N_y, N_z, x,     y,     z + 1)
+    xp_yp    =    look_up(grid, N_x, N_y, N_z, x + 1, y + 1, z    )
+    xp_zp    =    look_up(grid, N_x, N_y, N_z, x + 1, y,     z + 1)
+    yp_zp    =    look_up(grid, N_x, N_y, N_z, x,     y + 1, z + 1)
+    xp_yp_zp =    look_up(grid, N_x, N_y, N_z, x + 1, y + 1, z + 1)
 
     # First calculate all the (staggered) derivatives
     # See below function for explanation of terms - I wrote that function first
@@ -74,7 +75,7 @@ cdef void update_stresses(Field *grid,                                         #
     dw_dz = .25 * dz_inv * (zp.w - me.w + xp_zp.w - xp.w + yp_zp.w - yp.w + xp_yp_zp.w - xp_yp.w) 
 
     # Store the trace for simplicity
-    d_trace = .5 * (du_dx + dv_dy + dw_dz)
+    d_trace = (du_dx + dv_dy + dw_dz)
 
     # Now calculate the corresponding changes in stresses
     # First the diagonal terms, which have a contribution from the trace of D
@@ -179,6 +180,7 @@ cdef void update_velocities(Field *grid,                                        
     d_s23_dz = .25 * dz_inv * (me.s23 - zm.s23 + xm.s23 - xm_zm.s23 + ym.s23 - ym_zm.s23 + xm_ym.s23 - xm_ym_zm.s23)
     d_s13_dz = .25 * dz_inv * (me.s33 - zm.s33 + xm.s33 - xm_zm.s33 + ym.s33 - ym_zm.s33 + xm_ym.s33 - xm_ym_zm.s33)
 
+
     # Now get the Laplacian terms
     grad_sq_u = dx_inv * dx_inv * (xp.u - 2 * me.u + xm.u) + dy_inv * dy_inv * (yp.u - 2 * me.u + ym.u) + dz_inv * dz_inv * (zp.u - 2 * me.u + zm.u)
     grad_sq_v = dx_inv * dx_inv * (xp.v - 2 * me.v + xm.v) + dy_inv * dy_inv * (yp.v - 2 * me.v + ym.v) + dz_inv * dz_inv * (zp.v - 2 * me.v + zm.v)
@@ -188,3 +190,7 @@ cdef void update_velocities(Field *grid,                                        
     me.cu = rho_inv * dt * (d_s11_dx + d_s12_dy + d_s13_dz + kap * grad_sq_u)
     me.cv = rho_inv * dt * (d_s12_dx + d_s22_dy + d_s23_dz + kap * grad_sq_v)
     me.cw = rho_inv * dt * (d_s13_dx + d_s23_dy + d_s33_dz + kap * grad_sq_w)
+
+    #if ((x == 1) and (y == 1) and (z == 1)):
+        #printf("%f %f %f %f %f %f %f %f\n", me.s12, xm.s12, ym.s12, xm_ym.s12, zm.s12, xm_zm.s12, ym_zm.s12, xm_ym_zm.s12)
+    #    printf("%f %f %f %f %f\n\n", d_s12_dx, d_s12_dy, me.cu, me.cv, me.cw)

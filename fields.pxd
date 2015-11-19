@@ -34,3 +34,5 @@ cdef inline void update(Field *f) nogil:
     f.s23 += f.cs23
     f.s33 += f.cs33
     f.chi += f.chi
+
+    f.cu = f.cv = f.cw = f.cs11 = f.cs12 = f.cs13 = f.cs22 = f.cs23 = f.cs33 = f.chi = 0
