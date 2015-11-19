@@ -158,18 +158,17 @@ cdef void set_up_ghost_regions(Field *grid,                                  # O
             set_val(grid, N_x, N_y, N_z, xx, N_y + 1, zz, look_up(grid, N_x, N_y, N_z, xx, 1, zz))
 
     ## Now we need to handle the corner regions
-    #for yy in range(1, N_y + 1):
-        ## grid[0, yy, 0] = grid[N_x, yy, N_Z]
-        #set_val(grid, N_x, N_y, N_z, 0, yy, 0, look_up(grid, N_x, N_y, N_z, N_x, yy, N_z))
+    set_val(grid, N_x, N_y, N_z, 0,         0,       0,             look_up(grid, N_x, N_y, N_z, N_x, N_y, N_z))
+    set_val(grid, N_x, N_y, N_z, N_x + 1,   N_y + 1, N_z + 1,       look_up(grid, N_x, N_y, N_z, 1, 1, 1))
 
-        ## grid[N_x + 1, yy, 0] = grid[1, yy, N_z]
-        #set_val(grid, N_x, N_y, N_z, N_x + 1, yy, 0, look_up(grid, N_x, N_y, N_z, 1, yy, N_z))
+    set_val(grid, N_x, N_y, N_z, N_x + 1,   0,       0,             look_up(grid, N_x, N_y, N_z, 1, N_y, N_z))
+    set_val(grid, N_x, N_y, N_z, 0,         N_y + 1, N_z + 1,       look_up(grid, N_x, N_y, N_z, N_x, 1, 1))
 
-        ## grid[0, yy, N_z + 1] = grid[N_x, yy, 1]
-        #set_val(grid, N_x, N_y, N_z, 0, yy, N_z + 1, look_up(grid, N_x, N_y, N_z, N_x, yy, 1))
+    set_val(grid, N_x, N_y, N_z, 0,         N_y + 1, 0,             look_up(grid, N_x, N_y, N_z, N_x, 1, N_z))
+    set_val(grid, N_x, N_y, N_z, N_x + 1,   0,       N_z + 1,       look_up(grid, N_x, N_y, N_z, 1, N_y, 1))
 
-        ## grid[N_x + 1, yy, N_z + 1] = grid[1, yy, 1]
-        #set_val(grid, N_x, N_y, N_z, N_x + 1, yy, N_z + 1, look_up(grid, N_x, N_y, N_z, 1, yy, 1))
+    set_val(grid, N_x, N_y, N_z, 0,         0,       N_z + 1,       look_up(grid, N_x, N_y, N_z, N_x, N_y, 1))
+    set_val(grid, N_x, N_y, N_z, N_x + 1,   N_y + 1, 0,             look_up(grid, N_x, N_y, N_z, 1, 1, N_z))
 
 cdef void set_boundary_conditions(Field *grid,                                                  # Grid
                                   int N_x, int N_y, int N_z,                                    # Number of grid points
