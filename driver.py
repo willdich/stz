@@ -39,8 +39,8 @@ if __name__ == '__main__':
 
     # Total simulation time and number of time points
     t_0 = 0.
-    t_f = 10.
-    N_t = 1000 
+    t_f = 2.5
+    N_t = 250 
     dt = (t_f - t_0) / N_t
 
     # Run the simulation
