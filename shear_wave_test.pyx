@@ -159,16 +159,37 @@ cdef void set_up_ghost_regions(Field *grid,                                  # O
 
     ## Now we need to handle the corner regions
     set_val(grid, N_x, N_y, N_z, 0,         0,       0,             look_up(grid, N_x, N_y, N_z, N_x, N_y, N_z))
-    set_val(grid, N_x, N_y, N_z, N_x + 1,   N_y + 1, N_z + 1,       look_up(grid, N_x, N_y, N_z, 1, 1, 1))
+    set_val(grid, N_x, N_y, N_z, N_x + 1,   N_y + 1, N_z + 1,       look_up(grid, N_x, N_y, N_z, 1,   1,   1))
 
-    set_val(grid, N_x, N_y, N_z, N_x + 1,   0,       0,             look_up(grid, N_x, N_y, N_z, 1, N_y, N_z))
-    set_val(grid, N_x, N_y, N_z, 0,         N_y + 1, N_z + 1,       look_up(grid, N_x, N_y, N_z, N_x, 1, 1))
+    set_val(grid, N_x, N_y, N_z, N_x + 1,   0,       0,             look_up(grid, N_x, N_y, N_z, 1,   N_y, N_z))
+    set_val(grid, N_x, N_y, N_z, 0,         N_y + 1, N_z + 1,       look_up(grid, N_x, N_y, N_z, N_x, 1,   1))
 
-    set_val(grid, N_x, N_y, N_z, 0,         N_y + 1, 0,             look_up(grid, N_x, N_y, N_z, N_x, 1, N_z))
-    set_val(grid, N_x, N_y, N_z, N_x + 1,   0,       N_z + 1,       look_up(grid, N_x, N_y, N_z, 1, N_y, 1))
+    set_val(grid, N_x, N_y, N_z, 0,         N_y + 1, 0,             look_up(grid, N_x, N_y, N_z, N_x, 1,   N_z))
+    set_val(grid, N_x, N_y, N_z, N_x + 1,   0,       N_z + 1,       look_up(grid, N_x, N_y, N_z, 1,   N_y, 1))
 
     set_val(grid, N_x, N_y, N_z, 0,         0,       N_z + 1,       look_up(grid, N_x, N_y, N_z, N_x, N_y, 1))
-    set_val(grid, N_x, N_y, N_z, N_x + 1,   N_y + 1, 0,             look_up(grid, N_x, N_y, N_z, 1, 1, N_z))
+    set_val(grid, N_x, N_y, N_z, N_x + 1,   N_y + 1, 0,             look_up(grid, N_x, N_y, N_z, 1,   1,   N_z))
+
+    # And the "corner lines"
+    for yy in range(1, N_y + 1):
+        set_val(grid, N_x, N_y, N_z, 0,       yy, N_z + 1,          look_up(grid, N_x, N_y, N_z, N_x, yy, 1))
+        set_val(grid, N_x, N_y, N_z, 0,       yy, 0,                look_up(grid, N_x, N_y, N_z, N_x, yy, N_z))
+        set_val(grid, N_x, N_y, N_z, N_x + 1, yy, N_z + 1,          look_up(grid, N_x, N_y, N_z, 1,   yy, 1))
+        set_val(grid, N_x, N_y, N_z, N_x + 1, yy, 0,                look_up(grid, N_x, N_y, N_z, 1,   yy, N_z))
+
+    for xx in range(1, N_x + 1):
+        set_val(grid, N_x, N_y, N_z, xx,  0,       N_z + 1,         look_up(grid, N_x, N_y, N_z, xx,  N_y,  1))
+        set_val(grid, N_x, N_y, N_z, xx,  0,       0,               look_up(grid, N_x, N_y, N_z, xx,  N_y,  N_z))
+        set_val(grid, N_x, N_y, N_z, xx,  N_y + 1, N_z + 1,         look_up(grid, N_x, N_y, N_z, xx,  1,    1))
+        set_val(grid, N_x, N_y, N_z, xx,  N_y + 1, 0,               look_up(grid, N_x, N_y, N_z, xx,  1,    N_z))
+
+    for zz in range(1, N_z + 1):
+        set_val(grid, N_x, N_y, N_z, N_x + 1, N_y + 1, zz,          look_up(grid, N_x, N_y, N_z, 1,   1,   zz))
+        set_val(grid, N_x, N_y, N_z, 0,       0,       zz,          look_up(grid, N_x, N_y, N_z, N_x, N_y, zz))
+        set_val(grid, N_x, N_y, N_z, N_x + 1, 0,       zz,          look_up(grid, N_x, N_y, N_z, 1,   N_y, zz))
+        set_val(grid, N_x, N_y, N_z, 0,       N_y + 1, zz,          look_up(grid, N_x, N_y, N_z, N_x, 1,   zz))
+
+
 
 cdef void set_boundary_conditions(Field *grid,                                                  # Grid
                                   int N_x, int N_y, int N_z,                                    # Number of grid points
