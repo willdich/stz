@@ -10,14 +10,14 @@ import pyximport
 pyximport.install(setup_args={"include_dirs":np.get_include()},
         reload_support = True)
 
-from shear_wave_test import go
+from compressive_wave_test import go
 
 if __name__ == '__main__':
     
     # Inputs for the material lame parameters and density
-    lambd = 1.
+    lambd = .5
     mu = 1.
-    rho = 1.
+    rho = 3.
 
     # Minimum and maximum coordinates in each dimension
     max_x = 5. 
