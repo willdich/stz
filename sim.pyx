@@ -5,8 +5,10 @@ from libc.stdio cimport printf, fprintf, fopen, fclose, FILE
 cimport libc.math
 from common cimport *
 from update_fields cimport *
+from mpi4py cimport MPI
 
-cpdef void go(int N_x, int N_y, int N_z, int N_t,                                       # Number of grid points in each dimension
+cpdef void go(int threadid, MPI.Comm comm,                                              # Which thread & MPI communicator
+         int N_x, int N_y, int N_z, int N_t,                                            # Number of grid points in each dimension
          np.float64_t L_x, np.float64_t L_y, np.float64_t L_z,                          # Grid size in each dimension
          np.float64_t dx, np.float64_t dy, np.float64_t dz, np.float64_t dt,            # Time/spatial discretization
          np.float64_t mu, np.float64_t rho, np.float64_t lambd,                         # Material parameters

@@ -8,46 +8,49 @@ environ['LDFLAGS'] = '-Lm -lm'
 # Automatic Cython file compilation
 import pyximport
 pyximport.install(setup_args={"include_dirs":np.get_include()},
-        reload_support = True)
+    reload_support = True)
 
-from compressive_wave_test import go
+from mpi4py import MPI
+from multiprocessing.pool import ThreadPool
 
-if __name__ == '__main__':
-    
-    # Inputs for the material lame parameters and density
-    lambd = .5
-    mu = 1.
-    rho = 3.
+from parse_input import parse_input
+from sim import go
 
-    # Minimum and maximum coordinates in each dimension
-    max_x = 5. 
-    min_x = 0.
-    max_y = 5.
-    min_y = 0.
-    max_z = 5. 
-    min_z = 0.
+def prepare_input(num_threads, comm, config_file):
 
-    # Number of grid points in each dimension
-    N_x = 100 
-    N_y = 100
-    N_z = 100
+    # get simulation inputs from configuration file
+    lambd, mu, rho, min_x, max_x, min_y, max_y, min_z, max_z, N_x, N_y, N_z, t_0, t_f, N_t = parse_input(config_file)
 
     # Grid spacing in each dimension
     dx = (max_x - min_x) / N_x
     dy = (max_y - min_y) / N_y
     dz = (max_z - min_z) / N_z
 
-    # Total simulation time and number of time points
-    t_0 = 0.
-    t_f = 2.5
-    N_t = 100 
+    # Timestep
     dt = (t_f - t_0) / N_t
 
-    # Run the simulation
-    go(N_x, N_y, N_z, N_t,
-       np.float64(max_x) - np.float64(min_x),                               # L_x
-       np.float64(max_y) - np.float64(min_y),                               # L_y
-       np.float64(max_z) - np.float64(min_z),                               # L_z
-       np.float64(dx), np.float64(dy), np.float64(dz), np.float64(dt),      # dx, dy, dz, dt
-       np.float64(mu), np.float64(rho), np.float64(lambd),                  # mu, rho, lambda
-       np.float64(t_0), np.float64(t_f))                                    # t_0, t_f
+    # Grid size in each direction
+    L_x = np.float64(max_x) - np.float64(min_x)
+    L_y = np.float64(max_y) - np.float64(min_y)
+    L_z = np.float64(max_z) - np.float64(min_z)
+
+    params = []
+    for param in [comm, N_x, N_y, N_z, L_x, L_y, L_z, dx, dy, dz, dt, mu, rho, lambd, t_0, t_f]:
+        params.append([param] * num_threads)
+
+    params = tuple(params)
+
+    return zip(range(num_threads), *params)
+
+
+def parallel_sim(config_file, num_threads=1):
+
+    comm = MPI.COMM_WORLD
+    pool = ThreadPool(num_threads)
+
+    # send work to all the threads
+    pool.map(go, prepare_input(num_threads, comm, config_file), chunksize=1)
+
+if __name__ == '__main__':
+
+    parallel_sim('test.conf', 4)
