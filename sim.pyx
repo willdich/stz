@@ -118,13 +118,14 @@ cdef void set_up_ghost_regions(Field *grid,                                   # 
 
     cdef:
         int xx, yy, zz
-        int z_back, z_forward, y_back, y_forward, x_back, x_forward    # procs to send/recv ghost planes to/from
+        int back, forward                                 # ranks of procs to send/recv ghost regions
         Field *sendbuf = <Field *> malloc(sizeof(Field))
         Field *recvbuf = <Field *> malloc(sizeof(Field))
 
     # Instantiate periodic boundary conditions
     # First handle the z periodicity
-    z_back, z_forward = comm.Shift(2, 1)
+    back, forward = comm.Shift(2, 1)
+    # TODO: use only a single Sendrecv per plane
     for xx in range(1, nn_x + 1):
         for yy in range(1, nn_y + 1):
             # We have 2 + nn_z points in the nn_z direction
@@ -138,7 +139,7 @@ cdef void set_up_ghost_regions(Field *grid,                                   # 
             set_val(sendbuf, 0, 0, 0, 0, 0, 0,                look_up(grid, nn_x, nn_y, nn_z, xx, yy, nn_z))
 
             # send values & receive corresponding values from the other side
-            comm.Sendrecv(sendbuf=sendbuf, dest=z_forward, recvbuf=recvbuf, source=z_back)
+            comm.Sendrecv(sendbuf=sendbuf, dest=forward, recvbuf=recvbuf, source=back)
 
             # copy received values into grid
             set_val(grid, nn_x, nn_y, nn_z, xx, yy, 0,        recvbuf)
@@ -149,7 +150,7 @@ cdef void set_up_ghost_regions(Field *grid,                                   # 
             set_val(sendbuf, 0, 0, 0, 0, 0, 0,                look_up(grid, nn_x, nn_y, nn_z, xx, yy, 1))
 
             # send values & receive corresponding values from the other side
-            comm.Sendrecv(sendbuf=sendbuf, dest=z_back, recvbuf=recvbuf, source=z_forward)
+            comm.Sendrecv(sendbuf=sendbuf, dest=back, recvbuf=recvbuf, source=forward)
 
             # copy received values into grid
             set_val(grid, nn_x, nn_y, nn_z, xx, yy, nn_z + 1, recvbuf)
@@ -157,49 +158,75 @@ cdef void set_up_ghost_regions(Field *grid,                                   # 
 
 
     # Now do the same thing for the x periodicity
-    x_back, x_forward = comm.Shift(0, 1)
+    back, forward = comm.Shift(0, 1)
     for yy in range(1, nn_y + 1):
         for zz in range(1, nn_z + 1):
             # See comments in the above loop for explanation
 
             # grid[0, yy, zz] = grid[nn_x, yy, zz]
             set_val(sendbuf, 0, 0, 0, 0, 0, 0,                look_up(grid, nn_x, nn_y, nn_z, nn_x, yy, zz))
-            comm.Sendrecv(sendbuf=sendbuf, dest=x_forward, recvbuf=recvbuf, source=x_back)
+            comm.Sendrecv(sendbuf=sendbuf, dest=forward, recvbuf=recvbuf, source=back)
             set_val(grid, nn_x, nn_y, nn_z, 0, yy, zz,        recvbuf)
 
             # grid[nn_x + 1, yy, zz] = grid[1, yy, zz]
             set_val(sendbuf, 0, 0, 0, 0, 0, 0,                look_up(grid, nn_x, nn_y, nn_z, 1, yy, zz))
-            comm.Sendrecv(sendbuf=sendbuf, dest=x_forward, recvbuf=recvbuf, source=x_back)
+            comm.Sendrecv(sendbuf=sendbuf, dest=forward, recvbuf=recvbuf, source=back)
             set_val(grid, nn_x, nn_y, nn_z, nn_x + 1, yy, zz, recvbuf)
 
     # And finally the y periodicity
-    y_back, y_forward = comm.Shift(1, 1)
+    back, forward = comm.Shift(1, 1)
     for xx in range(1, nn_x + 1):
         for zz in range(1, nn_z + 1):
             # See comments in the above loop for explanation
             # grid[xx, 0, zz] = grid[xx, nn_y, zz]
             set_val(sendbuf, 0, 0, 0, 0, 0, 0,                look_up(grid, nn_x, nn_y, nn_z, xx, nn_y, zz))
-            comm.Sendrecv(sendbuf=sendbuf, dest=y_forward, recvbuf=recvbuf, source=y_back)
+            comm.Sendrecv(sendbuf=sendbuf, dest=forward, recvbuf=recvbuf, source=back)
             set_val(grid, nn_x, nn_y, nn_z, xx, 0, zz,        recvbuf)
 
             # grid[xx, nn_y + 1, zz] = grid[xx, 1, zz]
             #set_val(grid, nn_x, nn_y, nn_z, xx, nn_y + 1, zz, look_up(grid, nn_x, nn_y, nn_z, xx, 1,   zz))
             set_val(sendbuf, 0, 0, 0, 0, 0, 0,                look_up(grid, nn_x, nn_y, nn_z, xx, 1, zz))
-            comm.Sendrecv(sendbuf=sendbuf, dest=y_forward, recvbuf=recvbuf, source=y_back)
+            comm.Sendrecv(sendbuf=sendbuf, dest=forward, recvbuf=recvbuf, source=back)
             set_val(grid, nn_x, nn_y, nn_z, xx, nn_y + 1, zz, recvbuf)
 
     ## Now we need to handle the corner regions
-    set_val(grid, nn_x, nn_y, nn_z, 0,         0,       0,             look_up(grid, nn_x, nn_y, nn_z, nn_x, nn_y, nn_z))
-    set_val(grid, nn_x, nn_y, nn_z, nn_x + 1,   nn_y + 1, nn_z + 1,       look_up(grid, nn_x, nn_y, nn_z, 1,   1,   1))
+    back = comm.Get_cart_rank((c_x - 1, c_y - 1, c_z - 1))
+    forward = comm.Get_cart_rank((c_x + 1, c_y + 1, c_z + 1))
+    set_val(sendbuf, 0, 0, 0, 0, 0, 0,                            look_up(grid, nn_x, nn_y, nn_z, nn_x, nn_y, nn_z))
+    comm.Sendrecv(sendbuf=sendbuf, dest=forward, recvbuf=recvbuf, source=back)
+    set_val(grid, nn_x, nn_y, nn_z, 0, 0, 0,                      recvbuf)
+    set_val(sendbuf, 0, 0, 0, 0, 0, 0,                            look_up(grid, nn_x, nn_y, nn_z, 1, 1, 1))
+    comm.Sendrecv(sendbuf=sendbuf, dest=back, recvbuf=recvbuf, source=forward)
+    set_val(grid, nn_x, nn_y, nn_z, nn_x + 1, nn_y + 1, nn_z + 1, recvbuf)
 
-    set_val(grid, nn_x, nn_y, nn_z, nn_x + 1,   0,       0,             look_up(grid, nn_x, nn_y, nn_z, 1,   nn_y, nn_z))
-    set_val(grid, nn_x, nn_y, nn_z, 0,         nn_y + 1, nn_z + 1,       look_up(grid, nn_x, nn_y, nn_z, nn_x, 1,   1))
+    back = comm.Get_cart_rank((c_x + 1, c_y - 1, c_z - 1))
+    forward = comm.Get_cart_rank((c_x - 1, c_y + 1, c_z + 1))
+    set_val(sendbuf, 0, 0, 0, 0, 0, 0,                     look_up(grid, nn_x, nn_y, nn_z, 1, nn_y, nn_z))
+    comm.Sendrecv(sendbuf=sendbuf, dest=forward, recvbuf=recvbuf, source=back)
+    set_val(grid, nn_x, nn_y, nn_z, nn_x + 1, 0, 0,        recvbuf)
+    set_val(sendbuf, 0, 0, 0, 0, 0, 0,                     look_up(grid, nn_x, nn_y, nn_z, nn_x, 1, 1))
+    comm.Sendrecv(sendbuf=sendbuf, dest=back, recvbuf=recvbuf, source=forward)
+    set_val(grid, nn_x, nn_y, nn_z, 0, nn_y + 1, nn_z + 1, recvbuf)
 
-    set_val(grid, nn_x, nn_y, nn_z, 0,         nn_y + 1, 0,             look_up(grid, nn_x, nn_y, nn_z, nn_x, 1,   nn_z))
-    set_val(grid, nn_x, nn_y, nn_z, nn_x + 1,   0,       nn_z + 1,       look_up(grid, nn_x, nn_y, nn_z, 1,   nn_y, 1))
+    back = comm.Get_cart_rank((c_x - 1, c_y + 1, c_z - 1))
+    forward = comm.Get_cart_rank((c_x + 1, c_y - 1, c_z + 1))
+    set_val(sendbuf, 0, 0, 0, 0, 0, 0,                     look_up(grid, nn_x, nn_y, nn_z, nn_x, 1, nn_z))
+    comm.Sendrecv(sendbuf=sendbuf, dest=forward, recvbuf=recvbuf, source=back)
+    set_val(grid, nn_x, nn_y, nn_z, 0, nn_y + 1, 0,        recvbuf)
+    set_val(sendbuf, 0, 0, 0, 0, 0, 0,                     look_up(grid, nn_x, nn_y, nn_z, 1, nn_y, 1))
+    comm.Sendrecv(sendbuf=sendbuf, dest=back, recvbuf=recvbuf, source=forward)
+    set_val(grid, nn_x, nn_y, nn_z, nn_x + 1, 0, nn_z + 1, recvbuf)
 
-    set_val(grid, nn_x, nn_y, nn_z, 0,         0,       nn_z + 1,       look_up(grid, nn_x, nn_y, nn_z, nn_x, nn_y, 1))
-    set_val(grid, nn_x, nn_y, nn_z, nn_x + 1,   nn_y + 1, 0,             look_up(grid, nn_x, nn_y, nn_z, 1,   1,   nn_z))
+    #set_val(grid, nn_x, nn_y, nn_z, 0,         0,       nn_z + 1,       look_up(grid, nn_x, nn_y, nn_z, nn_x, nn_y, 1))
+    #set_val(grid, nn_x, nn_y, nn_z, nn_x + 1,   nn_y + 1, 0,             look_up(grid, nn_x, nn_y, nn_z, 1,   1,   nn_z))
+    back = comm.Get_cart_rank((c_x - 1, c_y - 1, c_z + 1))
+    forward = comm.Get_cart_rank((c_x + 1, c_y + 1, c_z - 1))
+    set_val(sendbuf, 0, 0, 0, 0, 0, 0,                     look_up(grid, nn_x, nn_y, nn_z, nn_x, 1, nn_z))
+    comm.Sendrecv(sendbuf=sendbuf, dest=forward, recvbuf=recvbuf, source=back)
+    set_val(grid, nn_x, nn_y, nn_z, 0, nn_y + 1, 0,        recvbuf)
+    set_val(sendbuf, 0, 0, 0, 0, 0, 0,                     look_up(grid, nn_x, nn_y, nn_z, 1, nn_y, 1))
+    comm.Sendrecv(sendbuf=sendbuf, dest=back, recvbuf=recvbuf, source=forward)
+    set_val(grid, nn_x, nn_y, nn_z, nn_x + 1, 0, nn_z + 1, recvbuf)
 
     # And the "corner lines"
     for yy in range(1, nn_y + 1):
