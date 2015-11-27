@@ -16,7 +16,7 @@ from multiprocessing.pool import ThreadPool
 from parse_input import parse_input
 from sim import go
 
-def prepare_input(config_file):
+def prepare_input(config_file, dim_x, dim_y, dim_z):
 
     # get simulation inputs from configuration file
     lambd, mu, rho, min_x, max_x, min_y, max_y, min_z, max_z, N_x, N_y, N_z, t_0, t_f, N_t = parse_input(config_file)
@@ -34,7 +34,13 @@ def prepare_input(config_file):
     L_y = np.float64(max_y) - np.float64(min_y)
     L_z = np.float64(max_z) - np.float64(min_z)
 
-    params = tuple([N_x, N_y, N_z, L_x, L_y, L_z, dx, dy, dz, dt, mu, rho, lambd, t_0, t_f])
+    # Number of grid points in each dimension per process
+    # Probably need to be a little more careful about this to ensure even division
+    nn_x = N_x / dim_x
+    nn_y = N_y / dim_y
+    nn_z = N_z / dim_z
+
+    params = tuple([nn_x, nn_y, nn_z, L_x, L_y, L_z, dx, dy, dz, dt, mu, rho, lambd, t_0, t_f])
 
     return params
 
