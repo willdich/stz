@@ -118,9 +118,13 @@ cdef void set_up_ghost_regions(Field *grid,                                   # 
 
     cdef:
         int xx, yy, zz
+        int z_back, z_forward, y_back, y_forward, x_back, x_forward    # procs to send/recv ghost planes to/from
+        Field *sendbuf = <Field *> malloc(sizeof(Field))
+        Field *recvbuf = <Field *> malloc(sizeof(Field))
 
     # Instantiate periodic boundary conditions
     # First handle the z periodicity
+    z_back, z_forward = comm.Shift(2, 1)
     for xx in range(1, nn_x + 1):
         for yy in range(1, nn_y + 1):
             # We have 2 + nn_z points in the nn_z direction
@@ -129,33 +133,60 @@ cdef void set_up_ghost_regions(Field *grid,                                   # 
             # So we identify the ghost region at the base with the topmost "non-ghost" point
             # And the ghost region at the top with the bottommost "non-ghost" point
             
-            # grid[xx, yy, 0] = grid[xx, yy, nn_z]
-            set_val(grid, nn_x, nn_y, nn_z, xx, yy, 0,       look_up(grid, nn_x, nn_y, nn_z, xx, yy, nn_z))
+            # grid[xx, yy, 0] = grid[xx, yy, nn_z] of adjacent proc
+            # copy values to send into buffer
+            set_val(sendbuf, 0, 0, 0, 0, 0, 0,                look_up(grid, nn_x, nn_y, nn_z, xx, yy, nn_z))
+
+            # send values & receive corresponding values from the other side
+            comm.Sendrecv(sendbuf=sendbuf, dest=z_forward, recvbuf=recvbuf, source=z_back)
+
+            # copy received values into grid
+            set_val(grid, nn_x, nn_y, nn_z, xx, yy, 0,        recvbuf)
 
             # grid[xx, yy, nn_z + 1] = grid[xx, yy, 1]
-            set_val(grid, nn_x, nn_y, nn_z, xx, yy, nn_z + 1, look_up(grid, nn_x, nn_y, nn_z, xx, yy, 1))
+            #set_val(grid, nn_x, nn_y, nn_z, xx, yy, nn_z + 1, look_up(grid, nn_x, nn_y, nn_z, xx, yy, 1))
+            # copy values to send into buffer
+            set_val(sendbuf, 0, 0, 0, 0, 0, 0,                look_up(grid, nn_x, nn_y, nn_z, xx, yy, 1))
+
+            # send values & receive corresponding values from the other side
+            comm.Sendrecv(sendbuf=sendbuf, dest=z_back, recvbuf=recvbuf, source=z_forward)
+
+            # copy received values into grid
+            set_val(grid, nn_x, nn_y, nn_z, xx, yy, nn_z + 1, recvbuf)
+
 
 
     # Now do the same thing for the x periodicity
+    x_back, x_forward = comm.Shift(0, 1)
     for yy in range(1, nn_y + 1):
         for zz in range(1, nn_z + 1):
             # See comments in the above loop for explanation
 
             # grid[0, yy, zz] = grid[nn_x, yy, zz]
-            set_val(grid, nn_x, nn_y, nn_z, 0,       yy, zz, look_up(grid, nn_x, nn_y, nn_z, nn_x, yy, zz))
+            set_val(sendbuf, 0, 0, 0, 0, 0, 0,                look_up(grid, nn_x, nn_y, nn_z, nn_x, yy, zz))
+            comm.Sendrecv(sendbuf=sendbuf, dest=x_forward, recvbuf=recvbuf, source=x_back)
+            set_val(grid, nn_x, nn_y, nn_z, 0, yy, zz,        recvbuf)
 
             # grid[nn_x + 1, yy, zz] = grid[1, yy, zz]
-            set_val(grid, nn_x, nn_y, nn_z, nn_x + 1, yy, zz, look_up(grid, nn_x, nn_y, nn_z, 1,   yy, zz))
+            set_val(sendbuf, 0, 0, 0, 0, 0, 0,                look_up(grid, nn_x, nn_y, nn_z, 1, yy, zz))
+            comm.Sendrecv(sendbuf=sendbuf, dest=x_forward, recvbuf=recvbuf, source=x_back)
+            set_val(grid, nn_x, nn_y, nn_z, nn_x + 1, yy, zz, recvbuf)
 
     # And finally the y periodicity
+    y_back, y_forward = comm.Shift(1, 1)
     for xx in range(1, nn_x + 1):
         for zz in range(1, nn_z + 1):
             # See comments in the above loop for explanation
             # grid[xx, 0, zz] = grid[xx, nn_y, zz]
-            set_val(grid, nn_x, nn_y, nn_z, xx, 0,       zz, look_up(grid, nn_x, nn_y, nn_z, xx, nn_y, zz))
+            set_val(sendbuf, 0, 0, 0, 0, 0, 0,                look_up(grid, nn_x, nn_y, nn_z, xx, nn_y, zz))
+            comm.Sendrecv(sendbuf=sendbuf, dest=y_forward, recvbuf=recvbuf, source=y_back)
+            set_val(grid, nn_x, nn_y, nn_z, xx, 0, zz,        recvbuf)
 
             # grid[xx, nn_y + 1, zz] = grid[xx, 1, zz]
-            set_val(grid, nn_x, nn_y, nn_z, xx, nn_y + 1, zz, look_up(grid, nn_x, nn_y, nn_z, xx, 1,   zz))
+            #set_val(grid, nn_x, nn_y, nn_z, xx, nn_y + 1, zz, look_up(grid, nn_x, nn_y, nn_z, xx, 1,   zz))
+            set_val(sendbuf, 0, 0, 0, 0, 0, 0,                look_up(grid, nn_x, nn_y, nn_z, xx, 1, zz))
+            comm.Sendrecv(sendbuf=sendbuf, dest=y_forward, recvbuf=recvbuf, source=y_back)
+            set_val(grid, nn_x, nn_y, nn_z, xx, nn_y + 1, zz, recvbuf)
 
     ## Now we need to handle the corner regions
     set_val(grid, nn_x, nn_y, nn_z, 0,         0,       0,             look_up(grid, nn_x, nn_y, nn_z, nn_x, nn_y, nn_z))
@@ -190,7 +221,7 @@ cdef void set_up_ghost_regions(Field *grid,                                   # 
         set_val(grid, nn_x, nn_y, nn_z, 0,       nn_y + 1, zz,          look_up(grid, nn_x, nn_y, nn_z, nn_x, 1,   zz))
 
 cdef void set_boundary_conditions(Field *grid,                                                  # Grid
-                                  int nn_x, int nn_y, int nn_z,                                    # Number of grid points
+                                  int nn_x, int nn_y, int nn_z,                                 # Number of grid points
                                   np.float64_t dx,                                              # Grid spacing
                                   np.float64_t L_x, np.float64_t L_y, np.float64_t L_z,         # Grid dimensions
                                   np.float64_t mu, np.float64_t rho) nogil:                     # Material density and mu
