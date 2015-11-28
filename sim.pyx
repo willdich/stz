@@ -119,8 +119,7 @@ cdef void set_up_ghost_regions(Field *grid,                                   # 
     cdef:
         int xx, yy, zz
         int back, forward                                 # ranks of procs to send/recv ghost regions
-        Field *sendbuf = <Field *> malloc(sizeof(Field))
-        Field *recvbuf = <Field *> malloc(sizeof(Field))
+        Field *buf_plane_z = <Field *> malloc((nn_x + 2) * (nn_y + 2) * sizeof(Field))
 
     # Instantiate periodic boundary conditions
     # First handle the z periodicity
@@ -136,26 +135,32 @@ cdef void set_up_ghost_regions(Field *grid,                                   # 
             
             # grid[xx, yy, 0] = grid[xx, yy, nn_z] of adjacent proc
             # copy values to send into buffer
-            set_val(sendbuf, 0, 0, 0, 0, 0, 0,                look_up(grid, nn_x, nn_y, nn_z, xx, yy, nn_z))
+            set_val(buf_plane_z, nn_x, 0, 0, xx, yy, 0,       look_up(grid, nn_x, nn_y, nn_z, xx, yy, nn_z))
 
-            # send values & receive corresponding values from the other side
-            comm.Sendrecv(sendbuf=sendbuf, dest=forward, recvbuf=recvbuf, source=back)
+    # send values & receive corresponding values from the other side
+    comm.Sendrecv_replace(buf=buf_plane_z, dest=forward, source=back)
 
+    for xx in range(1, nn_x + 1):
+        for yy in range(1, nn_y + 1):
             # copy received values into grid
-            set_val(grid, nn_x, nn_y, nn_z, xx, yy, 0,        recvbuf)
+            set_val(grid, nn_x, nn_y, nn_z, xx, yy, 0,        look_up(buf_plane_z, nn_x, 0, 0, xx, yy, 0))
 
             # grid[xx, yy, nn_z + 1] = grid[xx, yy, 1]
-            #set_val(grid, nn_x, nn_y, nn_z, xx, yy, nn_z + 1, look_up(grid, nn_x, nn_y, nn_z, xx, yy, 1))
             # copy values to send into buffer
-            set_val(sendbuf, 0, 0, 0, 0, 0, 0,                look_up(grid, nn_x, nn_y, nn_z, xx, yy, 1))
+            set_val(buf_plane_z, nn_x, 0, 0, xx, yy, 0,       look_up(grid, nn_x, nn_y, nn_z, xx, yy, 1))
 
-            # send values & receive corresponding values from the other side
-            comm.Sendrecv(sendbuf=sendbuf, dest=back, recvbuf=recvbuf, source=forward)
+    # send values & receive corresponding values from the other side
+    comm.Sendrecv_replace(buf_plane_z, dest=back, source=forward)
 
+    for xx in range(1, nn_x + 1):
+        for yy in range(1, nn_y + 1):
             # copy received values into grid
-            set_val(grid, nn_x, nn_y, nn_z, xx, yy, nn_z + 1, recvbuf)
+            set_val(grid, nn_x, nn_y, nn_z, xx, yy, nn_z + 1, look_up(buf_plane_z, nn_x, 0, 0, xx, yy, 0))
 
+    free(buf_plane_z)
 
+    cdef:
+        Field *buf_plane_x = <Field *> malloc((nn_y + 2) * (nn_z + 2) * sizeof(Field))
 
     # Now do the same thing for the x periodicity
     back, forward = comm.Shift(0, 1)
@@ -173,6 +178,11 @@ cdef void set_up_ghost_regions(Field *grid,                                   # 
             comm.Sendrecv(sendbuf=sendbuf, dest=forward, recvbuf=recvbuf, source=back)
             set_val(grid, nn_x, nn_y, nn_z, nn_x + 1, yy, zz, recvbuf)
 
+    free(buf_plane_x)
+
+    cdef:
+        Field *buf_plane_y = <Field *> malloc((nn_x + 2) * (nn_z + 2) * sizeof(Field))
+
     # And finally the y periodicity
     back, forward = comm.Shift(1, 1)
     for xx in range(1, nn_x + 1):
@@ -188,6 +198,11 @@ cdef void set_up_ghost_regions(Field *grid,                                   # 
             set_val(sendbuf, 0, 0, 0, 0, 0, 0,                look_up(grid, nn_x, nn_y, nn_z, xx, 1, zz))
             comm.Sendrecv(sendbuf=sendbuf, dest=forward, recvbuf=recvbuf, source=back)
             set_val(grid, nn_x, nn_y, nn_z, xx, nn_y + 1, zz, recvbuf)
+
+    free(buf_plane_y)
+
+    cdef:
+        Field *buf_corner = <Field *> malloc(sizeof(Field))
 
     ## Now we need to handle the corner regions
     back = comm.Get_cart_rank((c_x - 1, c_y - 1, c_z - 1))
@@ -226,6 +241,11 @@ cdef void set_up_ghost_regions(Field *grid,                                   # 
     comm.Sendrecv(sendbuf=sendbuf, dest=back, recvbuf=recvbuf, source=forward)
     set_val(grid, nn_x, nn_y, nn_z, nn_x + 1, 0, nn_z + 1, recvbuf)
 
+    free(buf_corner)
+
+    cdef:
+        Field *buf_line_xz = <Field *> malloc((nn_y + 2) * sizeof(Field))
+
     # And the "corner lines"
     back = comm.Get_cart_rank((c_x - 1, c_y, c_z + 1))
     forward = comm.Get_cart_rank((c_x - 1, c_y, c_z - 1))
@@ -247,6 +267,11 @@ cdef void set_up_ghost_regions(Field *grid,                                   # 
         comm.Sendrecv(sendbuf=sendbuf, dest=back, recvbuf=recvbuf, source=forward)
         set_val(grid, nn_x, nn_y, nn_z, nn_x + 1, yy, 0,        recvbuf)
 
+    free(buf_line_xz)
+
+
+    cdef:
+        Field *buf_line_yz = <Field *> malloc((nn_x + 2) * sizeof(Field))
 
     back = comm.Get_cart_rank((c_x, c_y - 1, c_z + 1))
     forward = comm.Get_cart_rank((c_x, c_y - 1, c_z - 1))
@@ -268,6 +293,11 @@ cdef void set_up_ghost_regions(Field *grid,                                   # 
         comm.Sendrecv(sendbuf=sendbuf, dest=back, recvbuf=recvbuf, source=forward)
         set_val(grid, nn_x, nn_y, nn_z, xx, nn_y + 1, 0,        recvbuf)
 
+    free(buf_line_yz)
+
+
+    cdef:
+        Field *buf_line_xy = <Field *> malloc((nn_z + 2) * sizeof(Field))
 
     back = comm.Get_cart_rank((c_x + 1, c_y + 1, c_z))
     forward = comm.Get_cart_rank((c_x + 1, c_y - 1, c_z))
@@ -288,6 +318,8 @@ cdef void set_up_ghost_regions(Field *grid,                                   # 
         set_val(sendbuf, 0, 0, 0, 0, 0, 0,               look_up(grid, nn_x, nn_y, nn_z, nn_x, nn_y, zz))
         comm.Sendrecv(sendbuf=sendbuf, dest=back, recvbuf=recvbuf, source=forward)
         set_val(grid, nn_x, nn_y, nn_z, 0, 0, zz,        recvbuf)
+
+    free(buf_line_xy)
 
 cdef void set_boundary_conditions(Field *grid,                                                  # Grid
                                   int nn_x, int nn_y, int nn_z,                                 # Number of grid points
