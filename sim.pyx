@@ -169,14 +169,22 @@ cdef void set_up_ghost_regions(Field *grid,                                   # 
             # See comments in the above loop for explanation
 
             # grid[0, yy, zz] = grid[nn_x, yy, zz]
-            set_val(sendbuf, 0, 0, 0, 0, 0, 0,                look_up(grid, nn_x, nn_y, nn_z, nn_x, yy, zz))
-            comm.Sendrecv(sendbuf=sendbuf, dest=forward, recvbuf=recvbuf, source=back)
-            set_val(grid, nn_x, nn_y, nn_z, 0, yy, zz,        recvbuf)
+            set_val(buf_plane_x, nn_y, 0, 0, yy, zz, 0,       look_up(grid, nn_x, nn_y, nn_z, nn_x, yy, zz))
+
+    comm.Sendrecv_replace(buf_plane_x, dest=forward, source=back)
+
+    for yy in range(1, nn_y + 1):
+        for zz in range(1, nn_z + 1):
+            set_val(grid, nn_x, nn_y, nn_z, 0, yy, zz,        look_up(buf_plane_x, nn_y, 0, 0, yy, zz, 0))
 
             # grid[nn_x + 1, yy, zz] = grid[1, yy, zz]
-            set_val(sendbuf, 0, 0, 0, 0, 0, 0,                look_up(grid, nn_x, nn_y, nn_z, 1, yy, zz))
-            comm.Sendrecv(sendbuf=sendbuf, dest=forward, recvbuf=recvbuf, source=back)
-            set_val(grid, nn_x, nn_y, nn_z, nn_x + 1, yy, zz, recvbuf)
+            set_val(buf_plane_x, nn_y, 0, 0, yy, zz, 0,       look_up(grid, nn_x, nn_y, nn_z, 1, yy, zz))
+
+    comm.Sendrecv_replace(buf_plane_x, dest=back, source=forward)
+
+    for yy in range(1, nn_y + 1):
+        for zz in range(1, nn_z + 1):
+            set_val(grid, nn_x, nn_y, nn_z, nn_x + 1, yy, zz, look_up(buf_plane_x, nn_y, 0, 0, yy, zz, 0))
 
     free(buf_plane_x)
 
@@ -189,15 +197,22 @@ cdef void set_up_ghost_regions(Field *grid,                                   # 
         for zz in range(1, nn_z + 1):
             # See comments in the above loop for explanation
             # grid[xx, 0, zz] = grid[xx, nn_y, zz]
-            set_val(sendbuf, 0, 0, 0, 0, 0, 0,                look_up(grid, nn_x, nn_y, nn_z, xx, nn_y, zz))
-            comm.Sendrecv(sendbuf=sendbuf, dest=forward, recvbuf=recvbuf, source=back)
-            set_val(grid, nn_x, nn_y, nn_z, xx, 0, zz,        recvbuf)
+            set_val(buf_plane_y, nn_x, 0, 0, xx, zz, 0,       look_up(grid, nn_x, nn_y, nn_z, xx, nn_y, zz))
+
+    comm.Sendrecv_replace(buf_plane_y, dest=forward, source=back)
+
+    for xx in range(1, nn_x + 1):
+        for zz in range(1, nn_z + 1):
+            set_val(grid, nn_x, nn_y, nn_z, xx, 0, zz,        look_up(buf_plane_y, nn_x, 0, 0, xx, zz, 0))
 
             # grid[xx, nn_y + 1, zz] = grid[xx, 1, zz]
-            #set_val(grid, nn_x, nn_y, nn_z, xx, nn_y + 1, zz, look_up(grid, nn_x, nn_y, nn_z, xx, 1,   zz))
-            set_val(sendbuf, 0, 0, 0, 0, 0, 0,                look_up(grid, nn_x, nn_y, nn_z, xx, 1, zz))
-            comm.Sendrecv(sendbuf=sendbuf, dest=forward, recvbuf=recvbuf, source=back)
-            set_val(grid, nn_x, nn_y, nn_z, xx, nn_y + 1, zz, recvbuf)
+            set_val(buf_plane_y, nn_x, 0, 0, xx, zz, 0,       look_up(grid, nn_x, nn_y, nn_z, xx, 1, zz))
+
+    comm.Sendrecv_replace(buf_plane_y, dest=back, source=forward)
+
+    for xx in range(1, nn_x + 1):
+        for zz in range(1, nn_z + 1):
+            set_val(grid, nn_x, nn_y, nn_z, xx, nn_y + 1, zz, look_up(buf_plane_y, nn_x, 0, 0, xx, zz, 0))
 
     free(buf_plane_y)
 
