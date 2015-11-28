@@ -222,39 +222,39 @@ cdef void set_up_ghost_regions(Field *grid,                                   # 
     ## Now we need to handle the corner regions
     back = comm.Get_cart_rank((c_x - 1, c_y - 1, c_z - 1))
     forward = comm.Get_cart_rank((c_x + 1, c_y + 1, c_z + 1))
-    set_val(sendbuf, 0, 0, 0, 0, 0, 0,                            look_up(grid, nn_x, nn_y, nn_z, nn_x, nn_y, nn_z))
-    comm.Sendrecv(sendbuf=sendbuf, dest=forward, recvbuf=recvbuf, source=back)
-    set_val(grid, nn_x, nn_y, nn_z, 0, 0, 0,                      recvbuf)
-    set_val(sendbuf, 0, 0, 0, 0, 0, 0,                            look_up(grid, nn_x, nn_y, nn_z, 1, 1, 1))
-    comm.Sendrecv(sendbuf=sendbuf, dest=back, recvbuf=recvbuf, source=forward)
-    set_val(grid, nn_x, nn_y, nn_z, nn_x + 1, nn_y + 1, nn_z + 1, recvbuf)
+    set_val(buf_corner, 0, 0, 0, 0, 0, 0,                         look_up(grid, nn_x, nn_y, nn_z, nn_x, nn_y, nn_z))
+    comm.Sendrecv_replace(buf_corner, dest=forward, source=back)
+    set_val(grid, nn_x, nn_y, nn_z, 0, 0, 0,                      buf_corner)
+    set_val(buf_corner, 0, 0, 0, 0, 0, 0,                         look_up(grid, nn_x, nn_y, nn_z, 1, 1, 1))
+    comm.Sendrecv_replace(buf_corner, dest=back, source=forward)
+    set_val(grid, nn_x, nn_y, nn_z, nn_x + 1, nn_y + 1, nn_z + 1, buf_corner)
 
     back = comm.Get_cart_rank((c_x + 1, c_y - 1, c_z - 1))
     forward = comm.Get_cart_rank((c_x - 1, c_y + 1, c_z + 1))
-    set_val(sendbuf, 0, 0, 0, 0, 0, 0,                     look_up(grid, nn_x, nn_y, nn_z, 1, nn_y, nn_z))
-    comm.Sendrecv(sendbuf=sendbuf, dest=forward, recvbuf=recvbuf, source=back)
-    set_val(grid, nn_x, nn_y, nn_z, nn_x + 1, 0, 0,        recvbuf)
-    set_val(sendbuf, 0, 0, 0, 0, 0, 0,                     look_up(grid, nn_x, nn_y, nn_z, nn_x, 1, 1))
-    comm.Sendrecv(sendbuf=sendbuf, dest=back, recvbuf=recvbuf, source=forward)
-    set_val(grid, nn_x, nn_y, nn_z, 0, nn_y + 1, nn_z + 1, recvbuf)
+    set_val(buf_corner, 0, 0, 0, 0, 0, 0,                  look_up(grid, nn_x, nn_y, nn_z, 1, nn_y, nn_z))
+    comm.Sendrecv_replace(buf_corner, dest=forward, source=back)
+    set_val(grid, nn_x, nn_y, nn_z, nn_x + 1, 0, 0,        buf_corner)
+    set_val(buf_corner, 0, 0, 0, 0, 0, 0,                  look_up(grid, nn_x, nn_y, nn_z, nn_x, 1, 1))
+    comm.Sendrecv_replace(buf_corner, dest=back, source=forward)
+    set_val(grid, nn_x, nn_y, nn_z, 0, nn_y + 1, nn_z + 1, buf_corner)
 
     back = comm.Get_cart_rank((c_x - 1, c_y + 1, c_z - 1))
     forward = comm.Get_cart_rank((c_x + 1, c_y - 1, c_z + 1))
-    set_val(sendbuf, 0, 0, 0, 0, 0, 0,                     look_up(grid, nn_x, nn_y, nn_z, nn_x, 1, nn_z))
-    comm.Sendrecv(sendbuf=sendbuf, dest=forward, recvbuf=recvbuf, source=back)
-    set_val(grid, nn_x, nn_y, nn_z, 0, nn_y + 1, 0,        recvbuf)
-    set_val(sendbuf, 0, 0, 0, 0, 0, 0,                     look_up(grid, nn_x, nn_y, nn_z, 1, nn_y, 1))
-    comm.Sendrecv(sendbuf=sendbuf, dest=back, recvbuf=recvbuf, source=forward)
-    set_val(grid, nn_x, nn_y, nn_z, nn_x + 1, 0, nn_z + 1, recvbuf)
+    set_val(buf_corner, 0, 0, 0, 0, 0, 0,                  look_up(grid, nn_x, nn_y, nn_z, nn_x, 1, nn_z))
+    comm.Sendrecv_replace(buf_corner, dest=forward, source=back)
+    set_val(grid, nn_x, nn_y, nn_z, 0, nn_y + 1, 0,        buf_corner)
+    set_val(buf_corner, 0, 0, 0, 0, 0, 0,                  look_up(grid, nn_x, nn_y, nn_z, 1, nn_y, 1))
+    comm.Sendrecv_replace(buf_corner, dest=back, source=forward)
+    set_val(grid, nn_x, nn_y, nn_z, nn_x + 1, 0, nn_z + 1, buf_corner)
 
     back = comm.Get_cart_rank((c_x - 1, c_y - 1, c_z + 1))
     forward = comm.Get_cart_rank((c_x + 1, c_y + 1, c_z - 1))
-    set_val(sendbuf, 0, 0, 0, 0, 0, 0,                     look_up(grid, nn_x, nn_y, nn_z, nn_x, 1, nn_z))
-    comm.Sendrecv(sendbuf=sendbuf, dest=forward, recvbuf=recvbuf, source=back)
-    set_val(grid, nn_x, nn_y, nn_z, 0, nn_y + 1, 0,        recvbuf)
-    set_val(sendbuf, 0, 0, 0, 0, 0, 0,                     look_up(grid, nn_x, nn_y, nn_z, 1, nn_y, 1))
-    comm.Sendrecv(sendbuf=sendbuf, dest=back, recvbuf=recvbuf, source=forward)
-    set_val(grid, nn_x, nn_y, nn_z, nn_x + 1, 0, nn_z + 1, recvbuf)
+    set_val(buf_corner, 0, 0, 0, 0, 0, 0,                  look_up(grid, nn_x, nn_y, nn_z, nn_x, 1, nn_z))
+    comm.Sendrecv_replace(buf_corner, dest=forward, source=back)
+    set_val(grid, nn_x, nn_y, nn_z, 0, nn_y + 1, 0,        buf_corner)
+    set_val(buf_corner, 0, 0, 0, 0, 0, 0,                  look_up(grid, nn_x, nn_y, nn_z, 1, nn_y, 1))
+    comm.Sendrecv_replace(buf_corner, dest=back, source=forward)
+    set_val(grid, nn_x, nn_y, nn_z, nn_x + 1, 0, nn_z + 1, buf_corner)
 
     free(buf_corner)
 
@@ -265,22 +265,26 @@ cdef void set_up_ghost_regions(Field *grid,                                   # 
     back = comm.Get_cart_rank((c_x - 1, c_y, c_z + 1))
     forward = comm.Get_cart_rank((c_x - 1, c_y, c_z - 1))
     for yy in range(1, nn_y + 1):
-        set_val(sendbuf, 0, 0, 0, 0, 0, 0,               look_up(grid, nn_x, nn_y, nn_z, nn_x, yy, 1))
-        comm.Sendrecv(sendbuf=sendbuf, dest=forward, recvbuf=recvbuf, source=back)
-        set_val(grid, nn_x, nn_y, nn_z, 0, yy, nn_z + 1, recvbuf)
-        set_val(sendbuf, 0, 0, 0, 0, 0, 0,               look_up(grid, nn_x, nn_y, nn_z, nn_x, yy, nn_z))
-        comm.Sendrecv(sendbuf=sendbuf, dest=back, recvbuf=recvbuf, source=forward)
-        set_val(grid, nn_x, nn_y, nn_z, 0, yy, 0,        recvbuf)
+        set_val(buf_line_xz, yy, 0, 0, 0, 0, 0,          look_up(grid, nn_x, nn_y, nn_z, nn_x, yy, 1))
+    comm.Sendrecv_replace(buf_line_xz, dest=forward, source=back)
+    for yy in range(1, nn_y + 1):
+        set_val(grid, nn_x, nn_y, nn_z, 0, yy, nn_z + 1, look_up(buf_line_xz, yy, 0, 0, 0, 0, 0))
+        set_val(buf_line_xz, yy, 0, 0, 0, 0, 0,          look_up(grid, nn_x, nn_y, nn_z, nn_x, yy, nn_z))
+    comm.Sendrecv_replace(buf_line_xz, dest=back, source=forward)
+    for yy in range(1, nn_y + 1):
+        set_val(grid, nn_x, nn_y, nn_z, 0, yy, 0,        look_up(buf_line_xz, yy, 0, 0, 0, 0, 0))
 
     back = comm.Get_cart_rank((c_x + 1, c_y, c_z + 1))
     forward = comm.Get_cart_rank((c_x + 1, c_y, c_z - 1))
     for yy in range(1, nn_y + 1):
-        set_val(sendbuf, 0, 0, 0, 0, 0, 0,                      look_up(grid, nn_x, nn_y, nn_z, 1, yy, 1))
-        comm.Sendrecv(sendbuf=sendbuf, dest=forward, recvbuf=recvbuf, source=back)
-        set_val(grid, nn_x, nn_y, nn_z, nn_x + 1, yy, nn_z + 1, recvbuf)
-        set_val(sendbuf, 0, 0, 0, 0, 0, 0,                      look_up(grid, nn_x, nn_y, nn_z, 1, yy, nn_z))
-        comm.Sendrecv(sendbuf=sendbuf, dest=back, recvbuf=recvbuf, source=forward)
-        set_val(grid, nn_x, nn_y, nn_z, nn_x + 1, yy, 0,        recvbuf)
+        set_val(buf_line_xz, yy, 0, 0, 0, 0, 0,                 look_up(grid, nn_x, nn_y, nn_z, 1, yy, 1))
+    comm.Sendrecv_replace(buf_line_xz, dest=forward, source=back)
+    for yy in range(1, nn_y + 1):
+        set_val(grid, nn_x, nn_y, nn_z, nn_x + 1, yy, nn_z + 1, look_up(buf_line_xz, yy, 0, 0, 0, 0, 0))
+        set_val(buf_line_xz, yy, 0, 0, 0, 0, 0,                 look_up(grid, nn_x, nn_y, nn_z, 1, yy, nn_z))
+    comm.Sendrecv_replace(buf_line_xz, dest=back, source=forward)
+    for yy in range(1, nn_y + 1):
+        set_val(grid, nn_x, nn_y, nn_z, nn_x + 1, yy, 0,        look_up(buf_line_xz, yy, 0, 0, 0, 0, 0))
 
     free(buf_line_xz)
 
@@ -291,22 +295,26 @@ cdef void set_up_ghost_regions(Field *grid,                                   # 
     back = comm.Get_cart_rank((c_x, c_y - 1, c_z + 1))
     forward = comm.Get_cart_rank((c_x, c_y - 1, c_z - 1))
     for xx in range(1, nn_x + 1):
-        set_val(sendbuf, 0, 0, 0, 0, 0, 0,               look_up(grid, nn_x, nn_y, nn_z, xx, nn_y, 1))
-        comm.Sendrecv(sendbuf=sendbuf, dest=forward, recvbuf=recvbuf, source=back)
-        set_val(grid, nn_x, nn_y, nn_z, xx, 0, nn_z + 1, recvbuf)
-        set_val(sendbuf, 0, 0, 0, 0, 0, 0,               look_up(grid, nn_x, nn_y, nn_z, xx, nn_y, nn_z))
-        comm.Sendrecv(sendbuf=sendbuf, dest=back, recvbuf=recvbuf, source=forward)
-        set_val(grid, nn_x, nn_y, nn_z, xx, 0, 0,        recvbuf)
+        set_val(buf_line_yz, xx, 0, 0, 0, 0, 0,          look_up(grid, nn_x, nn_y, nn_z, xx, nn_y, 1))
+    comm.Sendrecv_replace(buf_line_yz, dest=forward, source=back)
+    for xx in range(1, nn_x + 1):
+        set_val(grid, nn_x, nn_y, nn_z, xx, 0, nn_z + 1, look_up(buf_line_yz, xx, 0, 0, 0, 0, 0))
+        set_val(buf_line_yz, xx, 0, 0, 0, 0, 0,          look_up(grid, nn_x, nn_y, nn_z, xx, nn_y, nn_z))
+    comm.Sendrecv_replace(buf_line_yz, dest=back, source=forward)
+    for xx in range(1, nn_x + 1):
+        set_val(grid, nn_x, nn_y, nn_z, xx, 0, 0,        look_up(buf_line_yz, xx, 0, 0, 0, 0, 0))
 
     back = comm.Get_cart_rank((c_x, c_y + 1, c_z + 1))
     forward = comm.Get_cart_rank((c_x, c_y + 1, c_z - 1))
     for xx in range(1, nn_x + 1):
-        set_val(sendbuf, 0, 0, 0, 0, 0, 0,                      look_up(grid, nn_x, nn_y, nn_z, xx, 1, 1))
-        comm.Sendrecv(sendbuf=sendbuf, dest=forward, recvbuf=recvbuf, source=back)
-        set_val(grid, nn_x, nn_y, nn_z, xx, nn_y + 1, nn_z + 1, recvbuf)
-        set_val(sendbuf, 0, 0, 0, 0, 0, 0,                      look_up(grid, nn_x, nn_y, nn_z, xx, 1, nn_z))
-        comm.Sendrecv(sendbuf=sendbuf, dest=back, recvbuf=recvbuf, source=forward)
-        set_val(grid, nn_x, nn_y, nn_z, xx, nn_y + 1, 0,        recvbuf)
+        set_val(buf_line_yz, xx, 0, 0, 0, 0, 0,                 look_up(grid, nn_x, nn_y, nn_z, xx, 1, 1))
+    comm.Sendrecv_replace(buf_line_yz, dest=forward, source=back)
+    for xx in range(1, nn_x + 1):
+        set_val(grid, nn_x, nn_y, nn_z, xx, nn_y + 1, nn_z + 1, look_up(buf_line_yz, xx, 0, 0, 0, 0, 0))
+        set_val(buf_line_yz, xx, 0, 0, 0, 0, 0,                 look_up(grid, nn_x, nn_y, nn_z, xx, 1, nn_z))
+    comm.Sendrecv_replace(buf_line_yz, dest=back, source=forward)
+    for xx in range(1, nn_x + 1):
+        set_val(grid, nn_x, nn_y, nn_z, xx, nn_y + 1, 0,        look_up(buf_line_yz, xx, 0, 0, 0, 0, 0))
 
     free(buf_line_yz)
 
@@ -317,22 +325,26 @@ cdef void set_up_ghost_regions(Field *grid,                                   # 
     back = comm.Get_cart_rank((c_x + 1, c_y + 1, c_z))
     forward = comm.Get_cart_rank((c_x + 1, c_y - 1, c_z))
     for zz in range(1, nn_z + 1):
-        set_val(sendbuf, 0, 0, 0, 0, 0, 0,                      look_up(grid, nn_x, nn_y, nn_z, 1, 1, zz))
-        comm.Sendrecv(sendbuf=sendbuf, dest=forward, recvbuf=recvbuf, source=back)
-        set_val(grid, nn_x, nn_y, nn_z, nn_x + 1, nn_y + 1, zz, recvbuf)
-        set_val(sendbuf, 0, 0, 0, 0, 0, 0,                      look_up(grid, nn_x, nn_y, nn_z, 1, nn_y, zz))
-        comm.Sendrecv(sendbuf=sendbuf, dest=back, recvbuf=recvbuf, source=forward)
-        set_val(grid, nn_x, nn_y, nn_z, nn_x + 1, 0, zz,        recvbuf)
+        set_val(buf_line_xy, zz, 0, 0, 0, 0, 0,                 look_up(grid, nn_x, nn_y, nn_z, 1, 1, zz))
+    comm.Sendrecv_replace(buf_line_xy, dest=forward, source=back)
+    for zz in range(1, nn_z + 1):
+        set_val(grid, nn_x, nn_y, nn_z, nn_x + 1, nn_y + 1, zz, look_up(buf_line_xy, zz, 0, 0, 0, 0, 0))
+        set_val(buf_line_xy, zz, 0, 0, 0, 0, 0,                 look_up(grid, nn_x, nn_y, nn_z, 1, nn_y, zz))
+    comm.Sendrecv_replace(buf_line_xy, dest=back, source=forward)
+    for zz in range(1, nn_z + 1):
+        set_val(grid, nn_x, nn_y, nn_z, nn_x + 1, 0, zz,        look_up(buf_line_xy, zz, 0, 0, 0, 0, 0))
 
     back = comm.Get_cart_rank((c_x - 1, c_y + 1, c_z))
     forward = comm.Get_cart_rank((c_x - 1, c_y - 1, c_z))
     for zz in range(1, nn_z + 1):
-        set_val(sendbuf, 0, 0, 0, 0, 0, 0,               look_up(grid, nn_x, nn_y, nn_z, nn_x, 1, zz))
-        comm.Sendrecv(sendbuf=sendbuf, dest=back, recvbuf=recvbuf, source=forward)
-        set_val(grid, nn_x, nn_y, nn_z, 0, nn_y + 1, zz, recvbuf)
-        set_val(sendbuf, 0, 0, 0, 0, 0, 0,               look_up(grid, nn_x, nn_y, nn_z, nn_x, nn_y, zz))
-        comm.Sendrecv(sendbuf=sendbuf, dest=back, recvbuf=recvbuf, source=forward)
-        set_val(grid, nn_x, nn_y, nn_z, 0, 0, zz,        recvbuf)
+        set_val(buf_line_xy, zz, 0, 0, 0, 0, 0,          look_up(grid, nn_x, nn_y, nn_z, nn_x, 1, zz))
+    comm.Sendrecv_replace(buf_line_xy, dest=back, source=forward)
+    for zz in range(1, nn_z + 1):
+        set_val(grid, nn_x, nn_y, nn_z, 0, nn_y + 1, zz, look_up(buf_line_xy, zz, 0, 0, 0, 0, 0))
+        set_val(buf_line_xy, zz, 0, 0, 0, 0, 0,          look_up(grid, nn_x, nn_y, nn_z, nn_x, nn_y, zz))
+    comm.Sendrecv_replace(buf_line_xy, dest=back, source=forward)
+    for zz in range(1, nn_z + 1):
+        set_val(grid, nn_x, nn_y, nn_z, 0, 0, zz,        look_up(buf_line_xy, zz, 0, 0, 0, 0, 0))
 
     free(buf_line_xy)
 
