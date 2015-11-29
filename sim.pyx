@@ -27,6 +27,16 @@ cpdef void go(MPI.Cartcomm comm, int c_x, int c_y, int c_z,                     
         FILE *fp
         np.float64_t [20] initial_field_values
         np.float64_t curr_sig_shear, curr_v_shear
+        char *printbuf = <char *> malloc(32 * sizeof(char))
+        int rank = comm.Get_rank()
+        int size = comm.Get_size()
+
+    if rank == 0:
+        cdef:
+            char *allprint = <char *> malloc(size * 32 * sizeof(char))
+    else:
+        cdef:
+            char *allprint = NULL
 
     # Initialize the values that every Field will start with.
     for xx in range(20):
@@ -93,18 +103,24 @@ cpdef void go(MPI.Cartcomm comm, int c_x, int c_y, int c_z,                     
                         curr_sig_shear = shear_wave_sig((xx - 1) * dx, L_x, tt, mu, rho)
                         curr_v_shear = shear_wave_v((xx - 1) * dx, L_x, tt, mu, rho)
 
-                        # And print the data to the output file
-                        fprintf(fp, "%f %f %f %f %f %f %f %f %f %f\n",
-                                                # We again use xx-1, yy-1, and zz-1 by the above logic
-                                                tt, (xx-1)*dx, (yy-1)*dy, (zz-1)*dz,
-                                                curr_grid_element.v, curr_grid_element.s12,
-                                                curr_v_shear, curr_sig_shear,
-                                                libc.math.pow(libc.math.fabs(curr_grid_element.v - curr_v_shear), 2),
-                                                libc.math.pow(libc.math.fabs(curr_grid_element.s12 - curr_sig_shear), 2))
+                        # And send the data to the root proc to print to output file
+                        sprintf(printbuf, "%f %f %f %f %f %f %f %f %f %f\n",
+                                # We again use xx-1, yy-1, and zz-1 by the above logic
+                                tt, (xx-1)*dx, (yy-1)*dy, (zz-1)*dz,
+                                curr_grid_element.v, curr_grid_element.s12,
+                                curr_v_shear, curr_sig_shear,
+                                libc.math.pow(libc.math.fabs(curr_grid_element.v - curr_v_shear), 2),
+                                libc.math.pow(libc.math.fabs(curr_grid_element.s12 - curr_sig_shear), 2))
+                        comm.Gather(printbuf, allprint, root=0)
+                        if rank == 0:
+                            fprintf(fp, allprint)
 
     # And close the output file
     fclose(fp)
 
+    free(printbuf)
+    if rank == 0:
+        free(allprint)
     free(grid)
     
 cdef void set_up_ghost_regions(Field *grid,                                   # Our grid for this process

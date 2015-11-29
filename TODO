@@ -1,6 +1,6 @@
 TO GET PARALLELISM WITH MPI WORKING:
 [DONE]- rewrite plane & line exchanges as single communication
-- figure out printing (either one proc gathers, or coordinate all procs printing)
+[POSSIBLY DONE]- figure out printing (either one proc gathers, or coordinate all procs printing)
 - make sure using correct versions of all functions for Cython nogil
 - make sure dividing up grid between procs correctly
 - figure out dimensions as function of size (restrict size to a power of 2?)
