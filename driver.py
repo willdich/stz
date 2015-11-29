@@ -79,5 +79,5 @@ if __name__ == '__main__':
     cartcomm = comm.Create_cart(dims, periods=(True, True, True), reorder=True)
     c_x, c_y, c_z = cartcomm.Get_coords(rank)
 
-    go(cartcomm, c_x, c_y, c_z, *(prepare_input(config_file)))
+    go(cartcomm, c_x, c_y, c_z, size, rank, *(prepare_input(config_file)))
 

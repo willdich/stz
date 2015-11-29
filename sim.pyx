@@ -5,9 +5,10 @@ from libc.stdio cimport printf, fprintf, fopen, fclose, FILE
 cimport libc.math
 from common cimport *
 from update_fields cimport *
-from mpi4py cimport MPI
+from mpi4py cimport libmpi as mpi
 
-cpdef void go(MPI.Cartcomm comm, int c_x, int c_y, int c_z,                      # MPI cartesian communicator & our position in it
+cpdef void go(mpi.MPI_CART comm, int c_x, int c_y, int c_z,                      # MPI cartesian communicator & our position in it
+         int size, int rank,                                                     # number of procs & our proc id
          int nn_x, int nn_y, int nn_z, int N_t,                                  # Number of grid points in each dimension PER PROC
          np.float64_t L_x, np.float64_t L_y, np.float64_t L_z,                   # Grid size in each dimension
          np.float64_t dx, np.float64_t dy, np.float64_t dz, np.float64_t dt,     # Time/spatial discretization
@@ -28,8 +29,6 @@ cpdef void go(MPI.Cartcomm comm, int c_x, int c_y, int c_z,                     
         np.float64_t [20] initial_field_values
         np.float64_t curr_sig_shear, curr_v_shear
         char *printbuf = <char *> malloc(32 * sizeof(char))
-        int rank = comm.Get_rank()
-        int size = comm.Get_size()
         char *allprint
 
     if rank == 0:
