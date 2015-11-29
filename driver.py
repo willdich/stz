@@ -12,7 +12,6 @@ pyximport.install(setup_args={"include_dirs":[np.get_include(), mpi4py.get_inclu
     reload_support = True)
 
 from mpi4py import MPI
-from multiprocessing.pool import ThreadPool
 
 from parse_input import parse_input
 from sim import go

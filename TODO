@@ -1,8 +1,9 @@
 TO GET PARALLELISM WITH MPI WORKING:
 [DONE]- rewrite plane & line exchanges as single communication
 [POSSIBLY DONE]- figure out printing (either one proc gathers, or coordinate all procs printing)
-- convert to C versions of all MPI functions in sim.pyx
-- create MPI datatype for Field?
+[DONE]- convert to C versions of all MPI functions in sim.pyx
+[DONE]- create MPI datatype for Field?
+- figure out why Cython can't find mpi4py pxd files
 - make sure dividing up grid between procs correctly
 [DONE]- figure out dimensions as function of size (restrict size to a power of 2?)
 
