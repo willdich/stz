@@ -1,5 +1,4 @@
 cimport numpy as np
-from mpi4py cimport MPI
 
 cdef struct Field:
 

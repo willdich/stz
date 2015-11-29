@@ -1,4 +1,5 @@
 import numpy as np
+import mpi4py
 from os import environ
 
 # http://stackoverflow.com/questions/2741399/python-pyximporting-a-pyx-that-depends-on-a-native-library
@@ -7,7 +8,7 @@ environ['LDFLAGS'] = '-Lm -lm'
 
 # Automatic Cython file compilation
 import pyximport
-pyximport.install(setup_args={"include_dirs":np.get_include()},
+pyximport.install(setup_args={"include_dirs":[np.get_include(), mpi4py.get_include()]},
     reload_support = True)
 
 from mpi4py import MPI
