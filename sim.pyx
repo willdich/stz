@@ -5,11 +5,9 @@ from libc.stdio cimport printf, sprintf, fprintf, fopen, fclose, FILE
 cimport libc.math
 from common cimport *
 from update_fields cimport *
-from mpi4py cimport libmpi as mpi
+cimport mpi4py.libmpi as mpi
 
-cpdef void go(mpi.MPI_Comm comm, int c_x, int c_y, int c_z,                      # MPI cartesian communicator & our position in it
-         int size, int rank,                                                     # number of procs & our proc id
-         int nn_x, int nn_y, int nn_z, int N_t,                                  # Number of grid points in each dimension PER PROC
+cpdef void go(int N_x, int N_y, int N_z, int N_t,                                # Number of grid points in each dimension 
          np.float64_t L_x, np.float64_t L_y, np.float64_t L_z,                   # Grid size in each dimension
          np.float64_t dx, np.float64_t dy, np.float64_t dz, np.float64_t dt,     # Time/spatial discretization
          np.float64_t mu, np.float64_t rho, np.float64_t lambd,                  # Material parameters
@@ -22,12 +20,18 @@ cpdef void go(mpi.MPI_Comm comm, int c_x, int c_y, int c_z,                     
 
     cdef:
         int xx, yy, zz, t_ind
+        int nn_x, nn_y, nn_z
         float tt
         Field *curr_grid_element
         Field *grid = <Field *> malloc((nn_x + 2) * (nn_y + 2) * (nn_z + 2) * sizeof(Field))
         FILE *fp
         np.float64_t [20] initial_field_values
         np.float64_t curr_sig_shear, curr_v_shear
+        int dims[3]
+        mpi.MPI_Comm comm
+        int rank
+        int size
+        int cc[3]
         char *printbuf = <char *> malloc(50 * sizeof(char))
         char *allprint
 
@@ -35,6 +39,21 @@ cpdef void go(mpi.MPI_Comm comm, int c_x, int c_y, int c_z,                     
         allprint = <char *> malloc(size * 50 * sizeof(char))
     else:
         allprint = NULL
+
+    # Initialize MPI Cartesian communicator
+    mpi.MPI_Comm_size(mpi.MPI_COMM_WORLD, &size)
+    get_dims(size, dims)
+    mpi.MPI_Cart_create(mpi.MPI_COMM_WORLD, 3, dims, [1, 1, 1], 1, &comm)
+
+    # Find our position in it
+    mpi.MPI_Comm_rank(comm, &rank)
+    mpi.MPI_Cart_coords(comm, rank, 3, cc)
+
+    # Determine grid size per proc
+    # Probably need to be more careful to ensure even division
+    nn_x = N_x / dims[0]
+    nn_y = N_y / dims[1]
+    nn_z = N_z / dims[2]
 
     # Initialize the values that every Field will start with.
     for xx in range(20):
@@ -59,7 +78,7 @@ cpdef void go(mpi.MPI_Comm comm, int c_x, int c_y, int c_z,                     
     for t_ind in range(N_t):
 
         # Update the ghost regions to enforce periodicity
-        set_up_ghost_regions(grid, comm, c_x, c_y, c_z, nn_x, nn_y, nn_z)
+        set_up_ghost_regions(grid, comm, cc[0], cc[1], cc[2], nn_x, nn_y, nn_z)
 
         # Current time
         tt = t_0 + dt * t_ind
@@ -406,3 +425,32 @@ cdef np.float64_t shear_wave_sig(np.float64_t xx, np.float64_t L_x, np.float64_t
     """ Returns the value of a shear-stress shear wave located in plane x=xx at time tt """
 
     return -rho * libc.math.sqrt(mu / rho) * shear_wave_v(xx, L_x, tt, mu, rho)
+
+cdef void get_dims(int size, int dims[]) nogil:
+    '''
+    Return integer dimensions in 3D closest to a cube. Assumes number of procs is a power of 2.
+    '''
+
+    cdef:
+        int log2_size = <int>(libc.math.log(size) / libc.math.log(2))
+        int side
+        int pwr
+
+    # If number of procs is cubic, make a cube
+    if log2_size % 3 == 0:
+        side = 2 ** (log2_size / 3)
+        for i in range(3):
+            dims[i] = side
+    # otherwise, one side will be either one factor of two lower or higher than the other two sides
+    elif log2_size % 3 == 1:
+        pwr = log2_size / 3
+        dims[0] = 2 ** (pwr + 1)
+        dims[1] = 2 ** pwr
+        dims[2] = 2 ** pwr
+    else:
+        pwr = log2_size / 3 + 1
+        dims[0] = 2 ** pwr
+        dims[1] = 2 ** pwr
+        dims[2] = 2 ** (pwr - 1)
+
+

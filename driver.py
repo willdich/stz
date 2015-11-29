@@ -16,7 +16,7 @@ from mpi4py import MPI
 from parse_input import parse_input
 from sim import go
 
-def prepare_input(config_file, dim_x, dim_y, dim_z):
+def prepare_input(config_file):
 
     # get simulation inputs from configuration file
     lambd, mu, rho, min_x, max_x, min_y, max_y, min_z, max_z, N_x, N_y, N_z, t_0, t_f, N_t = parse_input(config_file)
@@ -34,36 +34,9 @@ def prepare_input(config_file, dim_x, dim_y, dim_z):
     L_y = np.float64(max_y) - np.float64(min_y)
     L_z = np.float64(max_z) - np.float64(min_z)
 
-    # Number of grid points in each dimension per process
-    # Probably need to be a little more careful about this to ensure even division
-    nn_x = N_x / dim_x
-    nn_y = N_y / dim_y
-    nn_z = N_z / dim_z
-
-    params = tuple([nn_x, nn_y, nn_z, L_x, L_y, L_z, dx, dy, dz, dt, mu, rho, lambd, t_0, t_f])
+    params = tuple([N_x, N_y, N_z, N_t, L_x, L_y, L_z, dx, dy, dz, dt, mu, rho, lambd, t_0, t_f])
 
     return params
-
-def get_dims(size):
-    '''
-    Return integer dimensions in 3D closest to a cube. Assumes number of procs is a power of 2.
-    '''
-
-    assert size and not size & (size - 1), 'get_dims assumes number of procs is a power of 2'
-
-    log2_size = np.log2(size)
-
-    # If number of procs is cubic, make a cube
-    if log2_size % 3 == 0:
-        side = 2 ** (log2_size / 3)
-        return (side, side, side)
-    # otherwise, one side will be either one factor of two lower or higher than the other two sides
-    elif log2_size % 3 == 1:
-        pwr = log2_size / 3
-        return (2 ** (pwr + 1), 2 ** pwr, 2 ** pwr)
-    else:
-        pwr = log2_size / 3 + 1
-        return (2 ** pwr, 2 ** pwr, 2 ** (pwr - 1))
 
 
 if __name__ == '__main__':
@@ -71,13 +44,5 @@ if __name__ == '__main__':
 
     config_file = sys.argv[1]
 
-    comm = MPI.COMM_WORLD
-    size = comm.Get_size()
-    rank = comm.Get_rank()
-
-    dims = get_dims(size)
-    cartcomm = comm.Create_cart(dims, periods=(True, True, True), reorder=True)
-    c_x, c_y, c_z = cartcomm.Get_coords(rank)
-
-    go(cartcomm, c_x, c_y, c_z, size, rank, *(prepare_input(config_file)))
+    go(*(prepare_input(config_file)))
 
