@@ -30,13 +30,12 @@ cpdef void go(MPI.Cartcomm comm, int c_x, int c_y, int c_z,                     
         char *printbuf = <char *> malloc(32 * sizeof(char))
         int rank = comm.Get_rank()
         int size = comm.Get_size()
+        char *allprint
 
     if rank == 0:
-        cdef:
-            char *allprint = <char *> malloc(size * 32 * sizeof(char))
+        allprint = <char *> malloc(size * 32 * sizeof(char))
     else:
-        cdef:
-            char *allprint = NULL
+        allprint = NULL
 
     # Initialize the values that every Field will start with.
     for xx in range(20):
@@ -140,7 +139,6 @@ cdef void set_up_ghost_regions(Field *grid,                                   # 
     # Instantiate periodic boundary conditions
     # First handle the z periodicity
     back, forward = comm.Shift(2, 1)
-    # TODO: use only a single Sendrecv per plane
     for xx in range(1, nn_x + 1):
         for yy in range(1, nn_y + 1):
             # We have 2 + nn_z points in the nn_z direction

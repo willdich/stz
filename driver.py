@@ -44,6 +44,27 @@ def prepare_input(config_file, dim_x, dim_y, dim_z):
 
     return params
 
+def get_dims(size):
+    '''
+    Return integer dimensions in 3D closest to a cube. Assumes number of procs is a power of 2.
+    '''
+
+    assert size and not size & (size - 1), 'get_dims assumes number of procs is a power of 2'
+
+    log2_size = np.log2(size)
+
+    # If number of procs is cubic, make a cube
+    if log2_size % 3 == 0:
+        side = 2 ** (log2_size / 3)
+        return (side, side, side)
+    # otherwise, one side will be either one factor of two lower or higher than the other two sides
+    elif log2_size % 3 == 1:
+        pwr = log2_size / 3
+        return (2 ** (pwr + 1), 2 ** pwr, 2 ** pwr)
+    else:
+        pwr = log2_size / 3 + 1
+        return (2 ** pwr, 2 ** pwr, 2 ** (pwr - 1))
+
 
 if __name__ == '__main__':
     import sys
@@ -54,7 +75,7 @@ if __name__ == '__main__':
     size = comm.Get_size()
     rank = comm.Get_rank()
 
-    dims = # some function of size that minimizes size of ghost regions?
+    dims = get_dims(size)
     cartcomm = comm.Create_cart(dims, periods=(True, True, True), reorder=True)
     c_x, c_y, c_z = cartcomm.Get_coords(rank)
 
