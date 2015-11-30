@@ -32,7 +32,7 @@ cpdef void go(int N_x, int N_y, int N_z, int N_t,                               
         int [1] rank
         int [1] size
         int [3] cc
-        char *printbuf = <char *> malloc(50 * sizeof(char))
+        char *printbuf = <char *> malloc(80 * sizeof(char))
         char *allprint
 
     # Initialize MPI Cartesian communicator
@@ -129,6 +129,7 @@ cpdef void go(int N_x, int N_y, int N_z, int N_t,                               
                                 curr_v_shear, curr_sig_shear,
                                 libc.math.pow(libc.math.fabs(curr_grid_element.v - curr_v_shear), 2),
                                 libc.math.pow(libc.math.fabs(curr_grid_element.s12 - curr_sig_shear), 2))
+
                         mpi.MPI_Gather(printbuf, 50, mpi.MPI_CHAR, allprint, 50 * size[0], mpi.MPI_CHAR, 0, comm)
                         if rank[0] == 0:
                             fprintf(fp, allprint)
