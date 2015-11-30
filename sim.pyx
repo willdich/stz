@@ -23,37 +23,38 @@ cpdef void go(int N_x, int N_y, int N_z, int N_t,                               
         int nn_x, nn_y, nn_z
         float tt
         Field *curr_grid_element
-        Field *grid = <Field *> malloc((nn_x + 2) * (nn_y + 2) * (nn_z + 2) * sizeof(Field))
+        Field *grid 
         FILE *fp
         np.float64_t [20] initial_field_values
         np.float64_t curr_sig_shear, curr_v_shear
-        int dims[3]
+        int [3] dims
         mpi.MPI_Comm comm
-        int rank
-        int size
-        int cc[3]
+        int [1] rank
+        int [1] size
+        int [3] cc
         char *printbuf = <char *> malloc(50 * sizeof(char))
         char *allprint
 
-    if rank == 0:
-        allprint = <char *> malloc(size * 50 * sizeof(char))
-    else:
-        allprint = NULL
-
     # Initialize MPI Cartesian communicator
-    mpi.MPI_Comm_size(mpi.MPI_COMM_WORLD, &size)
-    get_dims(size, dims)
+    mpi.MPI_Comm_size(mpi.MPI_COMM_WORLD, size)
+    get_dims(size[0], dims)
     mpi.MPI_Cart_create(mpi.MPI_COMM_WORLD, 3, dims, [1, 1, 1], 1, &comm)
 
     # Find our position in it
-    mpi.MPI_Comm_rank(comm, &rank)
-    mpi.MPI_Cart_coords(comm, rank, 3, cc)
+    mpi.MPI_Comm_rank(comm, rank)
+    mpi.MPI_Cart_coords(comm, rank[0], 3, cc)
+
+    if rank[0] == 0:
+        allprint = <char *> malloc(size[0] * 50 * sizeof(char))
+    else:
+        allprint = NULL
 
     # Determine grid size per proc
     # Probably need to be more careful to ensure even division
     nn_x = N_x / dims[0]
     nn_y = N_y / dims[1]
     nn_z = N_z / dims[2]
+    grid = <Field *> malloc((nn_x + 2) * (nn_y + 2) * (nn_z + 2) * sizeof(Field))
 
     # Initialize the values that every Field will start with.
     for xx in range(20):
@@ -128,15 +129,15 @@ cpdef void go(int N_x, int N_y, int N_z, int N_t,                               
                                 curr_v_shear, curr_sig_shear,
                                 libc.math.pow(libc.math.fabs(curr_grid_element.v - curr_v_shear), 2),
                                 libc.math.pow(libc.math.fabs(curr_grid_element.s12 - curr_sig_shear), 2))
-                        mpi.MPI_Gather(printbuf, 50, mpi.MPI_CHAR, allprint, 50 * size, mpi.MPI_CHAR, 0, comm)
-                        if rank == 0:
+                        mpi.MPI_Gather(printbuf, 50, mpi.MPI_CHAR, allprint, 50 * size[0], mpi.MPI_CHAR, 0, comm)
+                        if rank[0] == 0:
                             fprintf(fp, allprint)
 
     # And close the output file
     fclose(fp)
 
     free(printbuf)
-    if rank == 0:
+    if rank[0] == 0:
         free(allprint)
     free(grid)
     
