@@ -32,7 +32,7 @@ cpdef void go(int N_x, int N_y, int N_z, int N_t,                               
         int [1] rank
         int [1] size
         int [3] cc
-        char *printbuf = <char *> malloc(80 * sizeof(char))
+        char *printbuf = <char *> malloc(100 * sizeof(char))
         char *allprint
 
     # Initialize MPI Cartesian communicator
@@ -45,7 +45,7 @@ cpdef void go(int N_x, int N_y, int N_z, int N_t,                               
     mpi.MPI_Cart_coords(comm, rank[0], 3, cc)
 
     if rank[0] == 0:
-        allprint = <char *> malloc(size[0] * 50 * sizeof(char))
+        allprint = <char *> malloc(size[0] * 100 * sizeof(char))
     else:
         allprint = NULL
 
@@ -132,7 +132,7 @@ cpdef void go(int N_x, int N_y, int N_z, int N_t,                               
 
                         mpi.MPI_Gather(printbuf, 50, mpi.MPI_CHAR, allprint, 50 * size[0], mpi.MPI_CHAR, 0, comm)
                         if rank[0] == 0:
-                            fprintf(fp, allprint)
+                            fprintf(fp, "%s\n", allprint)
 
     # And close the output file
     fclose(fp)
