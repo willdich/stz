@@ -87,9 +87,9 @@ cpdef void go(int N_x, int N_y, int N_z, int N_t,                               
 
     # Plug in any relevant boundary conditions (manually)
     # Note that, now unlike serial, we need to take our local coordinates in the Cartesian communicator
-    set_boundary_conditions(grid, nn_x, nn_y, nn_z, dx,
+    set_boundary_conditions(grid, nn_x, nn_y, nn_z,
                             cc[0], cc[1], cc[2],
-                            dims[0], dims[1], dims[2],
+                            dims[0], dims[1], dims[2], dx,
                             L_x, L_y, L_z,
                             mu, rho)
 

@@ -1,3 +1,4 @@
+from __future__ import division
 import numpy as np
 import mpi4py
 from os import environ
