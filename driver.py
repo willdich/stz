@@ -9,9 +9,7 @@ environ['LDFLAGS'] = '-Lm -lm'
 
 # Automatic Cython file compilation
 import pyximport
-pyximport.install(setup_args={"include_dirs":[np.get_include(), mpi4py.get_include()]},
-    reload_support = True)
-
+pyximport.install(setup_args={"include_dirs":[np.get_include(), mpi4py.get_include()]})
 from mpi4py import MPI
 
 from parse_input import parse_input

@@ -32,7 +32,7 @@ cpdef void go(int N_x, int N_y, int N_z, int N_t,                               
         int [1] rank                                                    # Local process rank
         int [1] size                                                    # Size of the communicator - used to get total # of processors
         int [3] cc                                                      # Process coordinates in the Cartesian communicator
-        char *printbuf = <char *> malloc(100 * sizeof(char))            # Printing
+        char *printbuf = <char *> malloc(120 * sizeof(char))            # Printing
         char *allprint                                                  # Printing
 
     # Initialize MPI Cartesian communicator
@@ -56,7 +56,7 @@ cpdef void go(int N_x, int N_y, int N_z, int N_t,                               
     # If we are the master process..
     if rank[0] == 0:
         # Allocate some space for the print buffer
-        allprint = <char *> malloc(size[0] * 100 * sizeof(char))
+        allprint = <char *> malloc(size[0] * 120 * sizeof(char))
     else:
         # Otherwise we don't need it
         allprint = NULL
