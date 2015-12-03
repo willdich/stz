@@ -32,6 +32,7 @@ cpdef void go(int N_x, int N_y, int N_z, int N_t,                               
         int [1] rank                                                    # Local process rank
         int [1] size                                                    # Size of the communicator - used to get total # of processors
         int [3] cc                                                      # Process coordinates in the Cartesian communicator
+        int xoff, yoff, zoff                                            # Index offsets relative to the whole grid
         char *printbuf = <char *> malloc(180 * sizeof(char))            # Printing
         char *allprint                                                  # Printing
 
@@ -53,6 +54,7 @@ cpdef void go(int N_x, int N_y, int N_z, int N_t,                               
     # Store these in the length 3 array cc
     mpi.MPI_Cart_coords(comm, rank[0], 3, cc)
 
+    
     # If we are the master process..
     if rank[0] == 0:
         # Allocate some space for the print buffer
@@ -69,6 +71,11 @@ cpdef void go(int N_x, int N_y, int N_z, int N_t,                               
     nn_x = N_x / dims[0]
     nn_y = N_y / dims[1]
     nn_z = N_z / dims[2]
+
+    # Calculate the offsets
+    xoff = cc[0] * nn_x
+    yoff = cc[1] * nn_y
+    zoff = cc[2] * nn_z
 
     # Allocate the local grid, now including space for the ghost regions
     # Unlike in the serial case, these must now be communicated between processors
@@ -134,18 +141,19 @@ cpdef void go(int N_x, int N_y, int N_z, int N_t,                               
                     curr_grid_element = look_up(grid, nn_x, nn_y, nn_z, xx, yy, zz)
                     update(curr_grid_element) 
 
-                    if ((yy == 1) and (zz == 1)):
+                    #if ((yy == 1) and (zz == 1)):
+                    if (t_ind == 0) or (t_ind == 1):
                         #printf("%d %f %d %f %d %f \n", xx, xx * dx, yy, yy * dy, zz, zz * dz)
 
                         # Calculate the value of the shear waves
                         # We use xx - 1 because xx = 1 corresponds to x = 0: xx=0 is the ghost region!
-                        curr_sig_shear = shear_wave_sig((xx - 1) * dx, L_x, tt, mu, rho)
-                        curr_v_shear = shear_wave_v((xx - 1) * dx, L_x, tt, mu, rho)
+                        curr_sig_shear = shear_wave_sig((xx - 1 + xoff) * dx, L_x, tt, mu, rho)
+                        curr_v_shear = shear_wave_v((xx - 1 + xoff) * dx, L_x, tt, mu, rho)
 
                         # And send the data to the root proc to print to output file
                         sprintf(printbuf, "%6.5f %6.5f %6.5f %6.5f %6.5f %6.5f %6.5f %6.5f %6.5f %6.5f",
                                 # We again use xx-1, yy-1, and zz-1 by the above logic
-                                tt, (xx-1)*dx, (yy-1)*dy, (zz-1)*dz,
+                                tt, (xx-1 + xoff)*dx, (yy-1 + yoff)*dy, (zz-1 + zoff)*dz,
                                 curr_grid_element.v, curr_grid_element.s12,
                                 curr_v_shear, curr_sig_shear,
                                 libc.math.pow(libc.math.fabs(curr_grid_element.v - curr_v_shear), 2),
@@ -154,6 +162,8 @@ cpdef void go(int N_x, int N_y, int N_z, int N_t,                               
                         mpi.MPI_Gather(printbuf, 120, mpi.MPI_CHAR, allprint, 120 * size[0], mpi.MPI_CHAR, 0, comm)
                         if rank[0] == 0:
                             fprintf(fp, "%s\n", allprint)
+                    else:
+                        break
 
     # And close the output file
     fclose(fp)
@@ -436,17 +446,17 @@ cdef void set_boundary_conditions(Field *grid,                                  
     # Indexing starts at the topleftmost corner with (0, 0, 0) - we have (0, 0, 0) at the bottomleftmost corner
     # Note that x stays the same, but y and z flip
     phys_p_cx = cx
-    phys_p_cy = cy #(npy - 1) - cy
-    phys_p_cz = cz #(npz - 1) - cz
+    phys_p_cy = cy 
+    phys_p_cz = cz
 
     # Now calculate the offset relative to the overall grid
     # This uses the physical cartesian index because it makes the most sense
     # For every processor in the x direction in the "physical division", we have an extra nn_x + 2 points counting ghost
-    x_off = phys_p_cx * (nn_x + 2)
+    x_off = phys_p_cx * (nn_x)
 
     # And same goes for the y and z directions
-    y_off = phys_p_cy * (nn_y + 2)
-    z_off = phys_p_cz * (nn_z + 2)
+    y_off = phys_p_cy * (nn_y)
+    z_off = phys_p_cz * (nn_z)
 
     # We only set our local boundary conditions
     # Because this is analytical, we COULD set them in the ghost regions as well - this could be a good test
