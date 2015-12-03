@@ -338,8 +338,8 @@ cdef void set_up_ghost_regions(Field *grid,                                   # 
 
     # And the "corner lines"
     # Get rank of proc in correct grid position
-    mpi.MPI_Cart_rank(comm, [c_x + 1, c_y, c_z - 1], &back)
-    mpi.MPI_Cart_rank(comm, [c_x + 1, c_y, c_z + 1], &forward)
+    mpi.MPI_Cart_rank(comm, [c_x + 1, c_y, c_z - 1], &forward)
+    mpi.MPI_Cart_rank(comm, [c_x - 1, c_y, c_z + 1], &back)
 
     # Fill line buffer
     for yy in range(1, nn_y + 1):
@@ -349,18 +349,18 @@ cdef void set_up_ghost_regions(Field *grid,                                   # 
     # Copy values from buffer back into grid & repeat in opposite direction
     for yy in range(1, nn_y + 1):
         set_val(grid, nn_x, nn_y, nn_z, 0, yy, nn_z + 1, look_up(buf_line_xz, yy, 0, 0, 0, 0, 0))
-        set_val(buf_line_xz, yy, 0, 0, 0, 0, 0,          look_up(grid, nn_x, nn_y, nn_z, nn_x, yy, nn_z))
+        set_val(buf_line_xz, yy, 0, 0, 0, 0, 0,          look_up(grid, nn_x, nn_y, nn_z, 1, yy, nn_z))
     mpi.MPI_Sendrecv_replace(buf_line_xz, nn_y, fieldtype, back, 12, forward, 12, comm, &status)
     for yy in range(1, nn_y + 1):
-        set_val(grid, nn_x, nn_y, nn_z, 0, yy, 0,        look_up(buf_line_xz, yy, 0, 0, 0, 0, 0))
+        set_val(grid, nn_x, nn_y, nn_z, nn_x + 1, yy, 0,        look_up(buf_line_xz, yy, 0, 0, 0, 0, 0))
 
-    mpi.MPI_Cart_rank(comm, [c_x - 1, c_y, c_z - 1], &back)
-    mpi.MPI_Cart_rank(comm, [c_x - 1, c_y, c_z + 1], &forward)
+    mpi.MPI_Cart_rank(comm, [c_x + 1, c_y, c_z - 1], &forward)
+    mpi.MPI_Cart_rank(comm, [c_x - 1, c_y, c_z + 1], &back)
     for yy in range(1, nn_y + 1):
-        set_val(buf_line_xz, yy, 0, 0, 0, 0, 0,                 look_up(grid, nn_x, nn_y, nn_z, 1, yy, 1))
+        set_val(buf_line_xz, yy, 0, 0, 0, 0, 0,                 look_up(grid, nn_x, nn_y, nn_z, nn_x, yy, 1))
     mpi.MPI_Sendrecv_replace(buf_line_xz, nn_y, fieldtype, forward, 13, back, 13, comm, &status)
     for yy in range(1, nn_y + 1):
-        set_val(grid, nn_x, nn_y, nn_z, nn_x + 1, yy, nn_z + 1, look_up(buf_line_xz, yy, 0, 0, 0, 0, 0))
+        set_val(grid, nn_x, nn_y, nn_z, 0, yy, nn_z + 1, look_up(buf_line_xz, yy, 0, 0, 0, 0, 0))
         set_val(buf_line_xz, yy, 0, 0, 0, 0, 0,                 look_up(grid, nn_x, nn_y, nn_z, 1, yy, nn_z))
     mpi.MPI_Sendrecv_replace(buf_line_xz, nn_y, fieldtype, back, 14, forward, 14, comm, &status)
     for yy in range(1, nn_y + 1):
@@ -372,29 +372,29 @@ cdef void set_up_ghost_regions(Field *grid,                                   # 
     cdef:
         Field *buf_line_yz = <Field *> malloc((nn_x + 2) * sizeof(Field))
 
-    mpi.MPI_Cart_rank(comm, [c_x, c_y + 1, c_z - 1], &back)
-    mpi.MPI_Cart_rank(comm, [c_x, c_y + 1, c_z + 1], &forward)
+    mpi.MPI_Cart_rank(comm, [c_x, c_y + 1, c_z - 1], &forward)
+    mpi.MPI_Cart_rank(comm, [c_x, c_y - 1, c_z + 1], &back)
     for xx in range(1, nn_x + 1):
         set_val(buf_line_yz, xx, 0, 0, 0, 0, 0,          look_up(grid, nn_x, nn_y, nn_z, xx, nn_y, 1))
     mpi.MPI_Sendrecv_replace(buf_line_yz, nn_x, fieldtype, forward, 15, back, 15, comm, &status)
     for xx in range(1, nn_x + 1):
         set_val(grid, nn_x, nn_y, nn_z, xx, 0, nn_z + 1, look_up(buf_line_yz, xx, 0, 0, 0, 0, 0))
-        set_val(buf_line_yz, xx, 0, 0, 0, 0, 0,          look_up(grid, nn_x, nn_y, nn_z, xx, nn_y, nn_z))
+        set_val(buf_line_yz, xx, 0, 0, 0, 0, 0,          look_up(grid, nn_x, nn_y, nn_z, xx, 1, nn_z))
     mpi.MPI_Sendrecv_replace(buf_line_yz, nn_x, fieldtype, back, 16, forward, 16, comm, &status)
     for xx in range(1, nn_x + 1):
-        set_val(grid, nn_x, nn_y, nn_z, xx, 0, 0,        look_up(buf_line_yz, xx, 0, 0, 0, 0, 0))
+        set_val(grid, nn_x, nn_y, nn_z, xx, nn_y + 1, 0, look_up(buf_line_yz, xx, 0, 0, 0, 0, 0))
 
-    mpi.MPI_Cart_rank(comm, [c_x, c_y - 1, c_z - 1], &back)
-    mpi.MPI_Cart_rank(comm, [c_x, c_y - 1, c_z + 1], &forward)
+    mpi.MPI_Cart_rank(comm, [c_x, c_y - 1, c_z - 1], &forward)
+    mpi.MPI_Cart_rank(comm, [c_x, c_y + 1, c_z + 1], &back)
     for xx in range(1, nn_x + 1):
         set_val(buf_line_yz, xx, 0, 0, 0, 0, 0,                 look_up(grid, nn_x, nn_y, nn_z, xx, 1, 1))
     mpi.MPI_Sendrecv_replace(buf_line_yz, nn_x, fieldtype, forward, 17, back, 17, comm, &status)
     for xx in range(1, nn_x + 1):
         set_val(grid, nn_x, nn_y, nn_z, xx, nn_y + 1, nn_z + 1, look_up(buf_line_yz, xx, 0, 0, 0, 0, 0))
-        set_val(buf_line_yz, xx, 0, 0, 0, 0, 0,                 look_up(grid, nn_x, nn_y, nn_z, xx, 1, nn_z))
+        set_val(buf_line_yz, xx, 0, 0, 0, 0, 0,                 look_up(grid, nn_x, nn_y, nn_z, xx, nn_y, nn_z))
     mpi.MPI_Sendrecv_replace(buf_line_yz, nn_x, fieldtype, back, 18, forward, 18, comm, &status)
     for xx in range(1, nn_x + 1):
-        set_val(grid, nn_x, nn_y, nn_z, xx, nn_y + 1, 0,        look_up(buf_line_yz, xx, 0, 0, 0, 0, 0))
+        set_val(grid, nn_x, nn_y, nn_z, xx, 0, 0,               look_up(buf_line_yz, xx, 0, 0, 0, 0, 0))
 
     free(buf_line_yz)
 
@@ -402,29 +402,29 @@ cdef void set_up_ghost_regions(Field *grid,                                   # 
     cdef:
         Field *buf_line_xy = <Field *> malloc((nn_z + 2) * sizeof(Field))
 
-    mpi.MPI_Cart_rank(comm, [c_x + 1, c_y + 1, c_z], &back)
-    mpi.MPI_Cart_rank(comm, [c_x + 1, c_y - 1, c_z], &forward)
+    mpi.MPI_Cart_rank(comm, [c_x + 1, c_y + 1, c_z], &forward)
+    mpi.MPI_Cart_rank(comm, [c_x - 1, c_y - 1, c_z], &back)
     for zz in range(1, nn_z + 1):
-        set_val(buf_line_xy, zz, 0, 0, 0, 0, 0,                 look_up(grid, nn_x, nn_y, nn_z, 1, 1, zz))
+        set_val(buf_line_xy, zz, 0, 0, 0, 0, 0,                 look_up(grid, nn_x, nn_y, nn_z, nn_x, nn_y, zz))
     mpi.MPI_Sendrecv_replace(buf_line_xy, nn_z, fieldtype, forward, 19, back, 19, comm, &status)
     for zz in range(1, nn_z + 1):
-        set_val(grid, nn_x, nn_y, nn_z, nn_x + 1, nn_y + 1, zz, look_up(buf_line_xy, zz, 0, 0, 0, 0, 0))
-        set_val(buf_line_xy, zz, 0, 0, 0, 0, 0,                 look_up(grid, nn_x, nn_y, nn_z, 1, nn_y, zz))
+        set_val(grid, nn_x, nn_y, nn_z, 0, 0, zz, look_up(buf_line_xy, zz, 0, 0, 0, 0, 0))
+        set_val(buf_line_xy, zz, 0, 0, 0, 0, 0,                 look_up(grid, nn_x, nn_y, nn_z, 1, 1, zz))
     mpi.MPI_Sendrecv_replace(buf_line_xy, nn_z, fieldtype, back, 20, forward, 20, comm, &status)
     for zz in range(1, nn_z + 1):
-        set_val(grid, nn_x, nn_y, nn_z, nn_x + 1, 0, zz,        look_up(buf_line_xy, zz, 0, 0, 0, 0, 0))
+        set_val(grid, nn_x, nn_y, nn_z, nn_x + 1, nn_y + 1, zz, look_up(buf_line_xy, zz, 0, 0, 0, 0, 0))
 
+    mpi.MPI_Cart_rank(comm, [c_x + 1, c_y - 1, c_z], &forward)
     mpi.MPI_Cart_rank(comm, [c_x - 1, c_y + 1, c_z], &back)
-    mpi.MPI_Cart_rank(comm, [c_x - 1, c_y - 1, c_z], &forward)
     for zz in range(1, nn_z + 1):
         set_val(buf_line_xy, zz, 0, 0, 0, 0, 0,          look_up(grid, nn_x, nn_y, nn_z, nn_x, 1, zz))
     mpi.MPI_Sendrecv_replace(buf_line_xy, nn_z, fieldtype, forward, 21, back, 21, comm, &status)
     for zz in range(1, nn_z + 1):
         set_val(grid, nn_x, nn_y, nn_z, 0, nn_y + 1, zz, look_up(buf_line_xy, zz, 0, 0, 0, 0, 0))
-        set_val(buf_line_xy, zz, 0, 0, 0, 0, 0,          look_up(grid, nn_x, nn_y, nn_z, nn_x, nn_y, zz))
+        set_val(buf_line_xy, zz, 0, 0, 0, 0, 0,          look_up(grid, nn_x, nn_y, nn_z, 1, nn_y, zz))
     mpi.MPI_Sendrecv_replace(buf_line_xy, nn_z, fieldtype, back, 22, forward, 22, comm, &status)
     for zz in range(1, nn_z + 1):
-        set_val(grid, nn_x, nn_y, nn_z, 0, 0, zz,        look_up(buf_line_xy, zz, 0, 0, 0, 0, 0))
+        set_val(grid, nn_x, nn_y, nn_z, nn_x + 1, 0, zz, look_up(buf_line_xy, zz, 0, 0, 0, 0, 0))
 
     free(buf_line_xy)
 
