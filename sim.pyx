@@ -97,7 +97,12 @@ cpdef void go(int N_x, int N_y, int N_z, int N_t,                               
 
     # Plug in any relevant boundary conditions (manually)
     # Note that, now unlike serial, we need to take our local coordinates in the Cartesian communicator
-    set_boundary_conditions(grid, nn_x, nn_y, nn_z,
+    #set_boundary_conditions(grid, nn_x, nn_y, nn_z,
+    #                        cc[0], cc[1], cc[2],
+    #                        dims[0], dims[1], dims[2], dx,
+    #                        L_x, L_y, L_z,
+    #                        mu, rho)
+    set_dummy_boundary_conditions(grid, nn_x, nn_y, nn_z,
                             cc[0], cc[1], cc[2],
                             dims[0], dims[1], dims[2], dx,
                             L_x, L_y, L_z,
@@ -141,27 +146,27 @@ cpdef void go(int N_x, int N_y, int N_z, int N_t,                               
                     curr_grid_element = look_up(grid, nn_x, nn_y, nn_z, xx, yy, zz)
                     update(curr_grid_element) 
 
-                    #if ((yy == 1) and (zz == 1)):
-                    if (t_ind == 0) or (t_ind == 1):
-                        #printf("%d %f %d %f %d %f \n", xx, xx * dx, yy, yy * dy, zz, zz * dz)
+                    if t_ind in [0, 1, 2, 3, 4, 5]:
+                        if ((yy == 1) and (zz == 1)):
+                            #printf("%d %f %d %f %d %f \n", xx, xx * dx, yy, yy * dy, zz, zz * dz)
 
-                        # Calculate the value of the shear waves
-                        # We use xx - 1 because xx = 1 corresponds to x = 0: xx=0 is the ghost region!
-                        curr_sig_shear = shear_wave_sig((xx - 1 + xoff) * dx, L_x, tt, mu, rho)
-                        curr_v_shear = shear_wave_v((xx - 1 + xoff) * dx, L_x, tt, mu, rho)
+                            # Calculate the value of the shear waves
+                            # We use xx - 1 because xx = 1 corresponds to x = 0: xx=0 is the ghost region!
+                            curr_sig_shear = shear_wave_sig((xx - 1 + xoff) * dx, L_x, tt, mu, rho)
+                            curr_v_shear = shear_wave_v((xx - 1 + xoff) * dx, L_x, tt, mu, rho)
 
-                        # And send the data to the root proc to print to output file
-                        sprintf(printbuf, "%6.5f %6.5f %6.5f %6.5f %6.5f %6.5f %6.5f %6.5f %6.5f %6.5f",
-                                # We again use xx-1, yy-1, and zz-1 by the above logic
-                                tt, (xx-1 + xoff)*dx, (yy-1 + yoff)*dy, (zz-1 + zoff)*dz,
-                                curr_grid_element.v, curr_grid_element.s12,
-                                curr_v_shear, curr_sig_shear,
-                                libc.math.pow(libc.math.fabs(curr_grid_element.v - curr_v_shear), 2),
-                                libc.math.pow(libc.math.fabs(curr_grid_element.s12 - curr_sig_shear), 2))
+                            # And send the data to the root proc to print to output file
+                            sprintf(printbuf, "%6.5f %6.5f %6.5f %6.5f %6.5f %6.5f %6.5f %6.5f %6.5f %6.5f",
+                                    # We again use xx-1, yy-1, and zz-1 by the above logic
+                                    tt, (xx-1 + xoff)*dx, (yy-1 + yoff)*dy, (zz-1 + zoff)*dz,
+                                    curr_grid_element.v, curr_grid_element.s12,
+                                    curr_v_shear, curr_sig_shear,
+                                    libc.math.pow(libc.math.fabs(curr_grid_element.v - curr_v_shear), 2),
+                                    libc.math.pow(libc.math.fabs(curr_grid_element.s12 - curr_sig_shear), 2))
 
-                        mpi.MPI_Gather(printbuf, 120, mpi.MPI_CHAR, allprint, 120 * size[0], mpi.MPI_CHAR, 0, comm)
-                        if rank[0] == 0:
-                            fprintf(fp, "%s\n", allprint)
+                            mpi.MPI_Gather(printbuf, 120, mpi.MPI_CHAR, allprint, 120 * size[0], mpi.MPI_CHAR, 0, comm)
+                            if rank[0] == 0:
+                                fprintf(fp, "%s\n", allprint)
                     else:
                         break
 
@@ -194,7 +199,7 @@ cdef void set_up_ghost_regions(Field *grid,                                   # 
 
     # Instantiate periodic boundary conditions
     # First handle the z periodicity
-    mpi.MPI_Cart_shift(comm, 2, -1, &back, &forward) 
+    mpi.MPI_Cart_shift(comm, 2, 1, &back, &forward) 
     for xx in range(1, nn_x + 1):
         for yy in range(1, nn_y + 1):
             # We have 2 + nn_z points in the nn_z direction
@@ -208,7 +213,7 @@ cdef void set_up_ghost_regions(Field *grid,                                   # 
             set_val(buf_plane_z, nn_x, 0, 0, xx, yy, 0,       look_up(grid, nn_x, nn_y, nn_z, xx, yy, nn_z))
 
     # send values & receive corresponding values from the other side
-    mpi.MPI_Sendrecv_replace(buf_plane_z, nn_x * nn_y, fieldtype, forward, 2, back, 2, comm, &status)
+    mpi.MPI_Sendrecv_replace(buf_plane_z, (nn_x + 2) * (nn_y + 2), fieldtype, forward, 2, back, 2, comm, &status)
 
     for xx in range(1, nn_x + 1):
         for yy in range(1, nn_y + 1):
@@ -220,7 +225,7 @@ cdef void set_up_ghost_regions(Field *grid,                                   # 
             set_val(buf_plane_z, nn_x, 0, 0, xx, yy, 0,       look_up(grid, nn_x, nn_y, nn_z, xx, yy, 1))
 
     # send values & receive corresponding values from the other side
-    mpi.MPI_Sendrecv_replace(buf_plane_z, nn_x * nn_y, fieldtype, back, 2, forward, 2, comm, &status)
+    mpi.MPI_Sendrecv_replace(buf_plane_z, (nn_x + 2) * (nn_y + 2), fieldtype, back, 2, forward, 2, comm, &status)
 
     for xx in range(1, nn_x + 1):
         for yy in range(1, nn_y + 1):
@@ -233,7 +238,7 @@ cdef void set_up_ghost_regions(Field *grid,                                   # 
         Field *buf_plane_x = <Field *> malloc((nn_y + 2) * (nn_z + 2) * sizeof(Field))
 
     # Now do the same thing for the x periodicity
-    mpi.MPI_Cart_shift(comm, 0, -1, &back, &forward)
+    mpi.MPI_Cart_shift(comm, 0, 1, &back, &forward)
     for yy in range(1, nn_y + 1):
         for zz in range(1, nn_z + 1):
             # See comments in the above loop for explanation
@@ -241,7 +246,7 @@ cdef void set_up_ghost_regions(Field *grid,                                   # 
             # grid[0, yy, zz] = grid[nn_x, yy, zz]
             set_val(buf_plane_x, nn_y, 0, 0, yy, zz, 0,       look_up(grid, nn_x, nn_y, nn_z, nn_x, yy, zz))
 
-    mpi.MPI_Sendrecv_replace(buf_plane_x, nn_y * nn_z, fieldtype, forward, 0, back, 0, comm, &status)
+    mpi.MPI_Sendrecv_replace(buf_plane_x, (nn_y + 2) * (nn_z + 2), fieldtype, forward, 0, back, 0, comm, &status)
 
     for yy in range(1, nn_y + 1):
         for zz in range(1, nn_z + 1):
@@ -250,7 +255,7 @@ cdef void set_up_ghost_regions(Field *grid,                                   # 
             # grid[nn_x + 1, yy, zz] = grid[1, yy, zz]
             set_val(buf_plane_x, nn_y, 0, 0, yy, zz, 0,       look_up(grid, nn_x, nn_y, nn_z, 1, yy, zz))
 
-    mpi.MPI_Sendrecv_replace(buf_plane_x, nn_y * nn_z, fieldtype, back, 0, forward, 0, comm, &status)
+    mpi.MPI_Sendrecv_replace(buf_plane_x, (nn_y + 2) * (nn_z + 2), fieldtype, back, 0, forward, 0, comm, &status)
 
     for yy in range(1, nn_y + 1):
         for zz in range(1, nn_z + 1):
@@ -262,14 +267,14 @@ cdef void set_up_ghost_regions(Field *grid,                                   # 
         Field *buf_plane_y = <Field *> malloc((nn_x + 2) * (nn_z + 2) * sizeof(Field))
 
     # And finally the y periodicity
-    mpi.MPI_Cart_shift(comm, 1, -1, &back, &forward)
+    mpi.MPI_Cart_shift(comm, 1, 1, &back, &forward)
     for xx in range(1, nn_x + 1):
         for zz in range(1, nn_z + 1):
             # See comments in the above loop for explanation
             # grid[xx, 0, zz] = grid[xx, nn_y, zz]
             set_val(buf_plane_y, nn_x, 0, 0, xx, zz, 0,       look_up(grid, nn_x, nn_y, nn_z, xx, nn_y, zz))
 
-    mpi.MPI_Sendrecv_replace(buf_plane_y, nn_x * nn_z, fieldtype, forward, 1, back, 1, comm, &status)
+    mpi.MPI_Sendrecv_replace(buf_plane_y, (nn_x + 2) * (nn_z + 2), fieldtype, forward, 1, back, 1, comm, &status)
 
     for xx in range(1, nn_x + 1):
         for zz in range(1, nn_z + 1):
@@ -278,7 +283,7 @@ cdef void set_up_ghost_regions(Field *grid,                                   # 
             # grid[xx, nn_y + 1, zz] = grid[xx, 1, zz]
             set_val(buf_plane_y, nn_x, 0, 0, xx, zz, 0,       look_up(grid, nn_x, nn_y, nn_z, xx, 1, zz))
 
-    mpi.MPI_Sendrecv_replace(buf_plane_y, nn_x * nn_z, fieldtype, back, 1, forward, 1, comm, &status)
+    mpi.MPI_Sendrecv_replace(buf_plane_y, (nn_x + 2) * (nn_z + 2), fieldtype, back, 1, forward, 1, comm, &status)
 
     for xx in range(1, nn_x + 1):
         for zz in range(1, nn_z + 1):
@@ -423,6 +428,27 @@ cdef void set_up_ghost_regions(Field *grid,                                   # 
         set_val(grid, nn_x, nn_y, nn_z, 0, 0, zz,        look_up(buf_line_xy, zz, 0, 0, 0, 0, 0))
 
     free(buf_line_xy)
+
+cdef void set_dummy_boundary_conditions(Field *grid,                                                  # Grid
+                                  int nn_x, int nn_y, int nn_z,                                 # Number of grid points not in the ghost region
+                                  int cx, int cy, int cz,                                       # Cartesian location of the current processor
+                                  int npx, int npy, int npz,                                    # Number of processors in each dimension
+                                  np.float64_t dx,                                              # Grid spacing
+                                  np.float64_t L_x, np.float64_t L_y, np.float64_t L_z,         # Grid dimensions
+                                  np.float64_t mu, np.float64_t rho) nogil:                     # Material density and mu
+
+    """ Instantiates shear wave boundary/initial conditions """
+    cdef:
+        int xx, yy, zz                                        # Loop indices
+        Field *curr_field
+       
+    # Just set one point on one edge to nonzero
+    xx = 1
+    yy = 1
+    zz = 1
+    curr_field = look_up(grid, nn_x, nn_y, nn_z, xx, yy, zz)
+    curr_field.v = 0.1
+    curr_field.s12 = 0.1
 
 cdef void set_boundary_conditions(Field *grid,                                                  # Grid
                                   int nn_x, int nn_y, int nn_z,                                 # Number of grid points not in the ghost region
