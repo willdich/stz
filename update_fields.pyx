@@ -135,7 +135,7 @@ cdef void update_velocities(Field *grid,                                        
         np.float64_t grad_sq_v
         np.float64_t grad_sq_w
 
-        np.float64_t kap = .05       # viscosity fudge factor to smooth out divergences
+        np.float64_t kap = .015       # viscosity fudge factor to smooth out divergences
         
     # Get the inverse values for simplicity
     rho_inv = 1. / rho
