@@ -140,7 +140,7 @@ cpdef void go(int N_x, int N_y, int N_z, int N_t,                               
                         curr_v_shear = shear_wave_v((xx - 1) * dx, L_x, tt, mu, rho)
 
                         # And send the data to the root proc to print to output file
-                        sprintf(printbuf, "%4.2f %4.2f %4.2f %4.2f %4.2f %4.2f %4.2f %4.2f %4.2f %4.2f\n",
+                        sprintf(printbuf, "%4.6f %4.6f %4.6f %4.6f %4.6f %4.6f %4.6f %4.6f %4.6f %4.6f",
                                 # We again use xx-1, yy-1, and zz-1 by the above logic
                                 tt, (xx-1)*dx, (yy-1)*dy, (zz-1)*dz,
                                 curr_grid_element.v, curr_grid_element.s12,
@@ -148,7 +148,7 @@ cpdef void go(int N_x, int N_y, int N_z, int N_t,                               
                                 libc.math.pow(libc.math.fabs(curr_grid_element.v - curr_v_shear), 2),
                                 libc.math.pow(libc.math.fabs(curr_grid_element.s12 - curr_sig_shear), 2))
 
-                        mpi.MPI_Gather(printbuf, 50, mpi.MPI_CHAR, allprint, 50 * size[0], mpi.MPI_CHAR, 0, comm)
+                        mpi.MPI_Gather(printbuf, 120, mpi.MPI_CHAR, allprint, 120 * size[0], mpi.MPI_CHAR, 0, comm)
                         if rank[0] == 0:
                             fprintf(fp, "%s\n", allprint)
 
@@ -433,17 +433,17 @@ cdef void set_boundary_conditions(Field *grid,                                  
     # Indexing starts at the topleftmost corner with (0, 0, 0) - we have (0, 0, 0) at the bottomleftmost corner
     # Note that x stays the same, but y and z flip
     phys_p_cx = cx
-    phys_p_cy = (npy - 1) - cy
-    phys_p_cz = (npz - 1) - cz
+    phys_p_cy = cy #(npy - 1) - cy
+    phys_p_cz = cz #(npz - 1) - cz
 
     # Now calculate the offset relative to the overall grid
     # This uses the physical cartesian index because it makes the most sense
-    # For every processor in the x direction in the "physical division", we have an extra nn_x points
-    x_off = phys_p_cx * nn_x
+    # For every processor in the x direction in the "physical division", we have an extra nn_x + 2 points counting ghost
+    x_off = phys_p_cx * (nn_x + 2)
 
     # And same goes for the y and z directions
-    y_off = phys_p_cy * nn_y
-    z_off = phys_p_cz * nn_z
+    y_off = phys_p_cy * (nn_y + 2)
+    z_off = phys_p_cz * (nn_z + 2)
 
     # We only set our local boundary conditions
     # Because this is analytical, we COULD set them in the ghost regions as well - this could be a good test
