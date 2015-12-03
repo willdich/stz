@@ -32,7 +32,7 @@ cpdef void go(int N_x, int N_y, int N_z, int N_t,                               
         int [1] rank                                                    # Local process rank
         int [1] size                                                    # Size of the communicator - used to get total # of processors
         int [3] cc                                                      # Process coordinates in the Cartesian communicator
-        char *printbuf = <char *> malloc(120 * sizeof(char))            # Printing
+        char *printbuf = <char *> malloc(180 * sizeof(char))            # Printing
         char *allprint                                                  # Printing
 
     # Initialize MPI Cartesian communicator
@@ -56,7 +56,10 @@ cpdef void go(int N_x, int N_y, int N_z, int N_t,                               
     # If we are the master process..
     if rank[0] == 0:
         # Allocate some space for the print buffer
-        allprint = <char *> malloc(size[0] * 120 * sizeof(char))
+        allprint = <char *> malloc(size[0] * 180 * sizeof(char))
+        fp = fopen("input_params.dat", "w")
+        fprintf(fp, "%f %f %f %f %f %f %f %f %f %f %f %f, %d, %d, %d, %d", L_x, L_y, L_z, dx, dy, dz, dt, mu, rho, lambd, t_0, t_f, N_x, N_y, N_z, N_t) 
+        fclose(fp)
     else:
         # Otherwise we don't need it
         allprint = NULL
@@ -140,7 +143,7 @@ cpdef void go(int N_x, int N_y, int N_z, int N_t,                               
                         curr_v_shear = shear_wave_v((xx - 1) * dx, L_x, tt, mu, rho)
 
                         # And send the data to the root proc to print to output file
-                        sprintf(printbuf, "%4.6f %4.6f %4.6f %4.6f %4.6f %4.6f %4.6f %4.6f %4.6f %4.6f",
+                        sprintf(printbuf, "%6.5f %6.5f %6.5f %6.5f %6.5f %6.5f %6.5f %6.5f %6.5f %6.5f",
                                 # We again use xx-1, yy-1, and zz-1 by the above logic
                                 tt, (xx-1)*dx, (yy-1)*dy, (zz-1)*dz,
                                 curr_grid_element.v, curr_grid_element.s12,
@@ -181,7 +184,7 @@ cdef void set_up_ghost_regions(Field *grid,                                   # 
 
     # Instantiate periodic boundary conditions
     # First handle the z periodicity
-    mpi.MPI_Cart_shift(comm, 2, 1, &back, &forward) 
+    mpi.MPI_Cart_shift(comm, 2, -1, &back, &forward) 
     for xx in range(1, nn_x + 1):
         for yy in range(1, nn_y + 1):
             # We have 2 + nn_z points in the nn_z direction
@@ -220,7 +223,7 @@ cdef void set_up_ghost_regions(Field *grid,                                   # 
         Field *buf_plane_x = <Field *> malloc((nn_y + 2) * (nn_z + 2) * sizeof(Field))
 
     # Now do the same thing for the x periodicity
-    mpi.MPI_Cart_shift(comm, 0, 1, &back, &forward)
+    mpi.MPI_Cart_shift(comm, 0, -1, &back, &forward)
     for yy in range(1, nn_y + 1):
         for zz in range(1, nn_z + 1):
             # See comments in the above loop for explanation
@@ -249,7 +252,7 @@ cdef void set_up_ghost_regions(Field *grid,                                   # 
         Field *buf_plane_y = <Field *> malloc((nn_x + 2) * (nn_z + 2) * sizeof(Field))
 
     # And finally the y periodicity
-    mpi.MPI_Cart_shift(comm, 1, 1, &back, &forward)
+    mpi.MPI_Cart_shift(comm, 1, -1, &back, &forward)
     for xx in range(1, nn_x + 1):
         for zz in range(1, nn_z + 1):
             # See comments in the above loop for explanation
@@ -278,8 +281,8 @@ cdef void set_up_ghost_regions(Field *grid,                                   # 
         int tag = 0
 
     ## Now we need to handle the corner regions
-    mpi.MPI_Cart_rank(comm, [c_x - 1, c_y - 1, c_z - 1], &back)
-    mpi.MPI_Cart_rank(comm, [c_x + 1, c_y + 1, c_z + 1], &forward)
+    mpi.MPI_Cart_rank(comm, [c_x + 1, c_y + 1, c_z + 1], &back)
+    mpi.MPI_Cart_rank(comm, [c_x - 1, c_y - 1, c_z - 1], &forward)
     set_val(buf_corner, 0, 0, 0, 0, 0, 0,                         look_up(grid, nn_x, nn_y, nn_z, nn_x, nn_y, nn_z))
     mpi.MPI_Sendrecv_replace(buf_corner, 1, fieldtype, forward, tag, back, tag, comm, &status)
     set_val(grid, nn_x, nn_y, nn_z, 0, 0, 0,                      buf_corner)
@@ -287,8 +290,8 @@ cdef void set_up_ghost_regions(Field *grid,                                   # 
     mpi.MPI_Sendrecv_replace(buf_corner, 1, fieldtype, back, tag, forward, tag, comm, &status)
     set_val(grid, nn_x, nn_y, nn_z, nn_x + 1, nn_y + 1, nn_z + 1, buf_corner)
 
-    mpi.MPI_Cart_rank(comm, [c_x + 1, c_y - 1, c_z - 1], &back)
-    mpi.MPI_Cart_rank(comm, [c_x - 1, c_y + 1, c_z + 1], &forward)
+    mpi.MPI_Cart_rank(comm, [c_x - 1, c_y + 1, c_z + 1], &back)
+    mpi.MPI_Cart_rank(comm, [c_x + 1, c_y - 1, c_z - 1], &forward)
     set_val(buf_corner, 0, 0, 0, 0, 0, 0,                  look_up(grid, nn_x, nn_y, nn_z, 1, nn_y, nn_z))
     mpi.MPI_Sendrecv_replace(buf_corner, 1, fieldtype, forward, tag, back, tag, comm, &status)
     set_val(grid, nn_x, nn_y, nn_z, nn_x + 1, 0, 0,        buf_corner)
@@ -296,8 +299,8 @@ cdef void set_up_ghost_regions(Field *grid,                                   # 
     mpi.MPI_Sendrecv_replace(buf_corner, 1, fieldtype, back, tag, forward, tag, comm, &status)
     set_val(grid, nn_x, nn_y, nn_z, 0, nn_y + 1, nn_z + 1, buf_corner)
 
-    mpi.MPI_Cart_rank(comm, [c_x - 1, c_y + 1, c_z - 1], &back)
-    mpi.MPI_Cart_rank(comm, [c_x + 1, c_y - 1, c_z + 1], &forward)
+    mpi.MPI_Cart_rank(comm, [c_x + 1, c_y - 1, c_z + 1], &back)
+    mpi.MPI_Cart_rank(comm, [c_x - 1, c_y + 1, c_z - 1], &forward)
     set_val(buf_corner, 0, 0, 0, 0, 0, 0,                  look_up(grid, nn_x, nn_y, nn_z, nn_x, 1, nn_z))
     mpi.MPI_Sendrecv_replace(buf_corner, 1, fieldtype, forward, tag, back, tag, comm, &status)
     set_val(grid, nn_x, nn_y, nn_z, 0, nn_y + 1, 0,        buf_corner)
@@ -305,8 +308,8 @@ cdef void set_up_ghost_regions(Field *grid,                                   # 
     mpi.MPI_Sendrecv_replace(buf_corner, 1, fieldtype, back, tag, forward, tag, comm, &status)
     set_val(grid, nn_x, nn_y, nn_z, nn_x + 1, 0, nn_z + 1, buf_corner)
 
-    mpi.MPI_Cart_rank(comm, [c_x - 1, c_y - 1, c_z + 1], &back)
-    mpi.MPI_Cart_rank(comm, [c_x + 1, c_y + 1, c_z - 1], &forward)
+    mpi.MPI_Cart_rank(comm, [c_x + 1, c_y + 1, c_z - 1], &back)
+    mpi.MPI_Cart_rank(comm, [c_x - 1, c_y - 1, c_z + 1], &forward)
     set_val(buf_corner, 0, 0, 0, 0, 0, 0,                  look_up(grid, nn_x, nn_y, nn_z, nn_x, 1, nn_z))
     mpi.MPI_Sendrecv_replace(buf_corner, 1, fieldtype, forward, tag, back, tag, comm, &status)
     set_val(grid, nn_x, nn_y, nn_z, 0, nn_y + 1, 0,        buf_corner)
@@ -321,8 +324,8 @@ cdef void set_up_ghost_regions(Field *grid,                                   # 
 
     # And the "corner lines"
     # Get rank of proc in correct grid position
-    mpi.MPI_Cart_rank(comm, [c_x - 1, c_y, c_z + 1], &back)
-    mpi.MPI_Cart_rank(comm, [c_x - 1, c_y, c_z - 1], &forward)
+    mpi.MPI_Cart_rank(comm, [c_x + 1, c_y, c_z - 1], &back)
+    mpi.MPI_Cart_rank(comm, [c_x + 1, c_y, c_z + 1], &forward)
 
     # Fill line buffer
     for yy in range(1, nn_y + 1):
@@ -337,8 +340,8 @@ cdef void set_up_ghost_regions(Field *grid,                                   # 
     for yy in range(1, nn_y + 1):
         set_val(grid, nn_x, nn_y, nn_z, 0, yy, 0,        look_up(buf_line_xz, yy, 0, 0, 0, 0, 0))
 
-    mpi.MPI_Cart_rank(comm, [c_x + 1, c_y, c_z + 1], &back)
-    mpi.MPI_Cart_rank(comm, [c_x + 1, c_y, c_z - 1], &forward)
+    mpi.MPI_Cart_rank(comm, [c_x - 1, c_y, c_z - 1], &back)
+    mpi.MPI_Cart_rank(comm, [c_x - 1, c_y, c_z + 1], &forward)
     for yy in range(1, nn_y + 1):
         set_val(buf_line_xz, yy, 0, 0, 0, 0, 0,                 look_up(grid, nn_x, nn_y, nn_z, 1, yy, 1))
     mpi.MPI_Sendrecv_replace(buf_line_xz, nn_y, fieldtype, forward, tag, back, tag, comm, &status)
@@ -355,8 +358,8 @@ cdef void set_up_ghost_regions(Field *grid,                                   # 
     cdef:
         Field *buf_line_yz = <Field *> malloc((nn_x + 2) * sizeof(Field))
 
-    mpi.MPI_Cart_rank(comm, [c_x, c_y - 1, c_z + 1], &back)
-    mpi.MPI_Cart_rank(comm, [c_x, c_y - 1, c_z - 1], &forward)
+    mpi.MPI_Cart_rank(comm, [c_x, c_y + 1, c_z - 1], &back)
+    mpi.MPI_Cart_rank(comm, [c_x, c_y + 1, c_z + 1], &forward)
     for xx in range(1, nn_x + 1):
         set_val(buf_line_yz, xx, 0, 0, 0, 0, 0,          look_up(grid, nn_x, nn_y, nn_z, xx, nn_y, 1))
     mpi.MPI_Sendrecv_replace(buf_line_yz, nn_x, fieldtype, forward, tag, back, tag, comm, &status)
@@ -367,8 +370,8 @@ cdef void set_up_ghost_regions(Field *grid,                                   # 
     for xx in range(1, nn_x + 1):
         set_val(grid, nn_x, nn_y, nn_z, xx, 0, 0,        look_up(buf_line_yz, xx, 0, 0, 0, 0, 0))
 
-    mpi.MPI_Cart_rank(comm, [c_x, c_y + 1, c_z + 1], &back)
-    mpi.MPI_Cart_rank(comm, [c_x, c_y + 1, c_z - 1], &forward)
+    mpi.MPI_Cart_rank(comm, [c_x, c_y - 1, c_z - 1], &back)
+    mpi.MPI_Cart_rank(comm, [c_x, c_y - 1, c_z + 1], &forward)
     for xx in range(1, nn_x + 1):
         set_val(buf_line_yz, xx, 0, 0, 0, 0, 0,                 look_up(grid, nn_x, nn_y, nn_z, xx, 1, 1))
     mpi.MPI_Sendrecv_replace(buf_line_yz, nn_x, fieldtype, forward, tag, back, tag, comm, &status)
