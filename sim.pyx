@@ -10,7 +10,8 @@ cpdef void go(int N_x, int N_y, int N_z, int N_t,                               
          np.float64_t L_x, np.float64_t L_y, np.float64_t L_z,                          # Grid size in each dimension
          np.float64_t dx, np.float64_t dy, np.float64_t dz, np.float64_t dt,            # Time/spatial discretization
          np.float64_t mu, np.float64_t rho, np.float64_t lambd,                         # Material parameters
-         np.float64_t t_0, np.float64_t t_f) nogil:                                     # Initial and final time, list of time points
+         np.float64_t t_0, np.float64_t t_f,                                            # Initial and final time, list of time points
+         char *outfile) nogil:                                                            # Name of the output file
 
     """ Runs the simulation. Boundary conditions need to be put in EXPLICITLY in this file. 
     Grid is assumed to be of size N_x x N_y x N_z. The fourth dimension of the variable grid are all
@@ -35,7 +36,7 @@ cpdef void go(int N_x, int N_y, int N_z, int N_t,                               
         initial_field_values[xx] = 0
 
     # Set the output file
-    fp = fopen("output.txt", "w")
+    fp = fopen(outfile, "w")
 
     # Instantiate the grid
     for xx in range(N_x + 2):
@@ -87,7 +88,7 @@ cpdef void go(int N_x, int N_y, int N_z, int N_t,                               
                     curr_grid_element = look_up(grid, N_x, N_y, N_z, xx, yy, zz)
                     update(curr_grid_element) 
 
-                    if ((yy == 1) and (zz == 1)):
+                    if ((yy == 1) and (zz == 1) and (t_ind % 5 == 0)):
                         #printf("%d %f %d %f %d %f \n", xx, xx * dx, yy, yy * dy, zz, zz * dz)
 
                         # Calculate the value of the shear waves

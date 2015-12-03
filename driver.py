@@ -16,9 +16,10 @@ from sim import go
 def prepare_input(config_file):
 
     # get simulation inputs from configuration file
-    lambd, mu, rho, min_x, max_x, min_y, max_y, min_z, max_z, N_x, N_y, N_z, t_0, t_f, N_t = parse_input(config_file)
+    lambd, mu, rho, min_x, max_x, min_y, max_y, min_z, max_z, N_x, N_y, N_z, t_0, t_f, N_t, outfile = parse_input(config_file)
 
     # Grid spacing in each dimension
+    # We divide by N_i - 1 so that we include L_x in our boundary
     dx = (max_x - min_x) / N_x
     dy = (max_y - min_y) / N_y
     dz = (max_z - min_z) / N_z
@@ -31,7 +32,7 @@ def prepare_input(config_file):
     L_y = np.float64(max_y) - np.float64(min_y)
     L_z = np.float64(max_z) - np.float64(min_z)
 
-    return N_x, N_y, N_z, N_t, L_x, L_y, L_z, dx, dy, dz, dt, mu, rho, lambd, t_0, t_f
+    return N_x, N_y, N_z, N_t, L_x, L_y, L_z, dx, dy, dz, dt, mu, rho, lambd, t_0, t_f, outfile
 
 
 if __name__ == '__main__':

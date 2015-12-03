@@ -26,4 +26,6 @@ def parse_input(config_file):
     t_f = config.getfloat('Time Parameters', 't_f') if config.has_option('Time Parameters', 't_f') else 2.5
     N_t = config.getint('Time Parameters', 'N_t') if config.has_option('Time Parameters', 'N_t') else 100
 
-    return lambd, mu, rho, min_x, max_x, min_y, max_y, min_z, max_z, N_x, N_y, N_z, t_0, t_f, N_t
+    output = config.get('Output File', 'data') if config.has_option('Output File', 'data') else 'output.dat'
+
+    return lambd, mu, rho, min_x, max_x, min_y, max_y, min_z, max_z, N_x, N_y, N_z, t_0, t_f, N_t, output
