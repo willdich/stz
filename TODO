@@ -13,3 +13,10 @@ OPTIMIZATION:
 
 IF TIME:
 - add in neglected advective terms
+
+Current Goals:
+- Determine processor locations in the grid
+- Fix printing so that it accurately reflects processor location
+- Determine if the boundary conditions are being set properly
+- Once boundary conditions are set properly, set boundary conditions on the whole grid, print them,
+run ghost code, and print them again - boundary conditions should not change
