@@ -178,7 +178,7 @@ cdef void update_velocities(Field *grid,                                        
     # And last the z derivatives
     d_s13_dz = .25 * dz_inv * (me.s13 - zm.s13 + xm.s13 - xm_zm.s13 + ym.s13 - ym_zm.s13 + xm_ym.s13 - xm_ym_zm.s13)
     d_s23_dz = .25 * dz_inv * (me.s23 - zm.s23 + xm.s23 - xm_zm.s23 + ym.s23 - ym_zm.s23 + xm_ym.s23 - xm_ym_zm.s23)
-    d_s13_dz = .25 * dz_inv * (me.s33 - zm.s33 + xm.s33 - xm_zm.s33 + ym.s33 - ym_zm.s33 + xm_ym.s33 - xm_ym_zm.s33)
+    d_s33_dz = .25 * dz_inv * (me.s33 - zm.s33 + xm.s33 - xm_zm.s33 + ym.s33 - ym_zm.s33 + xm_ym.s33 - xm_ym_zm.s33)
 
 
     # Now get the Laplacian terms
