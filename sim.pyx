@@ -97,7 +97,7 @@ cpdef void go(int N_x, int N_y, int N_z, int N_t,                               
                         curr_v_shear = shear_wave_v((xx - 1) * dx, L_x, tt, mu, rho)
 
                         # And print the data to the output file
-                        fprintf(fp, "%f %f %f %f %f %f %f %f %f %f\n",
+                        fprintf(fp, "%6.5f %6.5f %6.5f %6.5f %6.5f %6.5f %6.5f %6.5f %6.5f %6.5f\n",
                                                 # We again use xx-1, yy-1, and zz-1 by the above logic
                                                 tt, (xx-1)*dx, (yy-1)*dy, (zz-1)*dz,
                                                 curr_grid_element.v, curr_grid_element.s12,
