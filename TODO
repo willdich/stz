@@ -1,10 +1,10 @@
 TO GET PARALLELISM WITH MPI WORKING:
 [DONE]- rewrite plane & line exchanges as single communication
-- figure out printing (either one proc gathers, or coordinate all procs printing)
+[DONE]- figure out printing (either one proc gathers, or coordinate all procs printing)
 [DONE]- convert to C versions of all MPI functions in sim.pyx
 [DONE]- create MPI datatype for Field?
 [DONE]- figure out why Cython can't find mpi4py pxd files
-- make sure dividing up grid between procs correctly
+[DONE]- make sure dividing up grid between procs correctly
 [DONE]- figure out dimensions as function of size (restrict size to a power of 2?)
 
 OPTIMIZATION:
@@ -15,8 +15,9 @@ IF TIME:
 - add in neglected advective terms
 
 Current Goals:
-- Determine processor locations in the grid
-- Fix printing so that it accurately reflects processor location
-- Determine if the boundary conditions are being set properly
-- Once boundary conditions are set properly, set boundary conditions on the whole grid, print them,
-run ghost code, and print them again - boundary conditions should not change
+- make sure works on Odyssey
+- benchmark:
+    - serial vs. parallel
+    - parallel w/ different numbers of cores
+    - cores on same node vs. different nodes
+    - dimensions divided up min vs. max surface area
