@@ -1,7 +1,7 @@
 from fields cimport Field, update 
 cimport numpy as np
 from libc.stdlib cimport malloc, free
-from libc.stdio cimport printf, sprintf, fprintf, fopen, fclose, FILE
+from libc.stdio cimport printf, sprintf, fprintf, fopen, fclose, FILE, putchar
 cimport libc.math
 from common cimport *
 from update_fields cimport *
@@ -34,12 +34,22 @@ cpdef void go(int N_x, int N_y, int N_z, int N_t,                               
         int [1] size                                                    # Size of the communicator - used to get total # of processors
         int [3] cc                                                      # Process coordinates in the Cartesian communicator
         int xoff, yoff, zoff                                            # Index offsets relative to the whole grid
-        char *printbuf = <char *> malloc(180 * sizeof(char))            # Printing
+        int numchars = 100                                              # for printing
+        char *printbuf = <char *> malloc(numchars * sizeof(char))       # Printing
         char *allprint                                                  # Printing
+        int i                                                           # index for printing
+        int *displs                                                     # for printing
+        int *recvcounts                                                 # for printing
 
     # Initialize MPI Cartesian communicator
     # Puts the total number of processors used to run the code into size
     mpi.MPI_Comm_size(mpi.MPI_COMM_WORLD, size)
+
+    displs = <int *> malloc(size[0] * sizeof(int))
+    recvcounts = <int *> malloc(size[0] * sizeof(int))
+    for i in range(size[0]):
+        displs[i] = i * size[0]
+        recvcounts[i] = size[0]
 
     # Calculate the dimensions of the overall grid in terms of number of processors
     get_dims(size[0], dims)
@@ -59,7 +69,7 @@ cpdef void go(int N_x, int N_y, int N_z, int N_t,                               
     # If we are the master process..
     if rank[0] == 0:
         # Allocate some space for the print buffer
-        allprint = <char *> malloc(size[0] * 180 * sizeof(char))
+        allprint = <char *> malloc(size[0] * numchars * sizeof(char))
         fp = fopen("input_params.dat", "w")
         fprintf(fp, "%f %f %f %f %f %f %f %f %f %f %f %f, %d, %d, %d, %d", L_x, L_y, L_z, dx, dy, dz, dt, mu, rho, lambd, t_0, t_f, N_x, N_y, N_z, N_t) 
         fclose(fp)
@@ -164,9 +174,12 @@ cpdef void go(int N_x, int N_y, int N_z, int N_t,                               
                                 libc.math.pow(libc.math.fabs(curr_grid_element.v - curr_v_shear), 2),
                                 libc.math.pow(libc.math.fabs(curr_grid_element.s12 - curr_sig_shear), 2))
 
-                        mpi.MPI_Gather(printbuf, 120, mpi.MPI_CHAR, allprint, 120 * size[0], mpi.MPI_CHAR, 0, comm)
+                        mpi.MPI_Gather(printbuf, numchars, mpi.MPI_CHAR,
+                                       allprint, numchars, mpi.MPI_CHAR,
+                                       0, comm)
                         if rank[0] == 0:
-                            fprintf(fp, "%s\n", allprint)
+                            for i in range(size[0]):
+                                fprintf(fp, "%s\n", allprint + (i * numchars))
 
     # And close the output file
     fclose(fp)
