@@ -5,7 +5,7 @@ from libc.stdio cimport printf, sprintf, fprintf, fopen, fclose, FILE, putchar
 cimport libc.math
 from common cimport *
 from update_fields cimport *
-cimport mpi4py.libmpi as mpi
+cimport mpi4py.mpi_c as mpi
 
 cpdef void go(int N_x, int N_y, int N_z, int N_t,                                       # Number of grid points in each dimension
          np.float64_t L_x, np.float64_t L_y, np.float64_t L_z,                          # Grid size in each dimension
