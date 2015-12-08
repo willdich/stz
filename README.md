@@ -8,11 +8,11 @@ stz is a work-in-progress code for simulating bulk metallic glasses in 3D using 
 
 This code requires cython (http://cython.org/) and mpi4py (http://mpi4py.scipy.org/).
 
-## Branches
+### Branches
 
 Pull the `master` branch for a serial implementation, `paralle_MPI` for the parallel implementation, or `odyssey` for code suited for running on Harvard University's Odyssey cluster.
 
-## Download and Installation
+### Download and Installation
 
 Grab your copy of the code with
 
@@ -22,17 +22,17 @@ Assuming you have cython installed, you can cause the program to compile to C wi
 
     python driver.py
 
-## Simulation Paramaters
+### Simulation Paramaters
 
 An example `test.conf` file is provided for configuration options. The file accepts values for the material Lame parameters and density, the size of the grid, the number of points in each dimension, the initial and final time, and an output file. This file can be modified directly or used as a template.To run a simulation with specific parameters, call:
 
     python driver.py [your configuration file]
 
-## Initial and Boundary Conditions
+### Initial and Boundary Conditions
 
 You will also need to implement the relevant boundary conditions for the problem you wish to solve. This is done in the `set_boundary_conditions()` function in `sim.pyx`. Shear wave initial conditions have been provided as an example to demonstrate how to implement initial conditions.
 
-## Parallel Code
+### Parallel 
 
 To pull the parallel code, checkout the `parallel_MPI` branch. The code can be run just as in the case of the serial file by calling:
 
@@ -40,7 +40,7 @@ To pull the parallel code, checkout the `parallel_MPI` branch. The code can be r
 
 where `n` is the number of processors.
 
-# Background Information (for those who care)
+# Background Information
 
 Bulk metallic glasses (BMGs) are an alloy whose atoms form an amorphous, random structure, in contrast to most metals. BMGs possess exceptional mechanical properties, such as high tensile strength, excellent wear resistance, and the ability to be efficiently molded and processed. They are under consideration for a wealth of technological applications, such as next-generation smartphone cases and aircraft components. However, their amorphous structure raises fundamental unanswered questions about their mechanical properties, which has hindered their usage in structural applications where they must be guaranteed not to fail.
 
