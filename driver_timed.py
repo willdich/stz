@@ -1,4 +1,5 @@
 from __future__ import division
+from __future__ import print_function
 import numpy as np
 #import mpi4py
 #from os import environ
@@ -11,6 +12,7 @@ import numpy as np
 import pyximport
 #pyximport.install(setup_args={"include_dirs":[np.get_include(), mpi4py.get_include()]})
 
+from timer import Timer
 from parse_input import parse_input
 from sim import go
 
@@ -40,6 +42,10 @@ if __name__ == '__main__':
     import sys
 
     config_file = sys.argv[1]
+    opts = prepare_input(config_file)
 
-    go(*(prepare_input(config_file)))
+    with Timer() as t:
+        go(*opts)
 
+    with open('time-' + opts[-1]) as timer_outfile:
+        print(t.interval, file=timer_outfile)
