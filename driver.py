@@ -1,16 +1,15 @@
 from __future__ import division
 import numpy as np
-import mpi4py
-from os import environ
+#import mpi4py
+#from os import environ
 
 # http://stackoverflow.com/questions/2741399/python-pyximporting-a-pyx-that-depends-on-a-native-library
 # Link to math library without having to write setup.py
-environ['LDFLAGS'] = '-Lm -lm'
+#environ['LDFLAGS'] = '-Lm -lm'
 
 # Automatic Cython file compilation
 import pyximport
-pyximport.install(setup_args={"include_dirs":[np.get_include(), mpi4py.get_include()]})
-from mpi4py import MPI
+#pyximport.install(setup_args={"include_dirs":[np.get_include(), mpi4py.get_include()]})
 
 from parse_input import parse_input
 from sim import go

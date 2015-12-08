@@ -7,12 +7,14 @@ from common cimport *
 from update_fields cimport *
 cimport mpi4py.mpi_c as mpi
 
-cpdef void go(int N_x, int N_y, int N_z, int N_t,                                       # Number of grid points in each dimension
+# Defined as int rather than void because the older version of Cython on Odyssey (0.20.1) does not support cpdef void
+# (newer version - 0.23.4 - just returns "None" for cpdef void if called from Python)
+cpdef int go(int N_x, int N_y, int N_z, int N_t,                                        # Number of grid points in each dimension
          np.float64_t L_x, np.float64_t L_y, np.float64_t L_z,                          # Grid size in each dimension
          np.float64_t dx, np.float64_t dy, np.float64_t dz, np.float64_t dt,            # Time/spatial discretization
          np.float64_t mu, np.float64_t rho, np.float64_t lambd,                         # Material parameters
          np.float64_t t_0, np.float64_t t_f,                                            # Initial and final time, list of time points
-         char *outfile) nogil:                                                            # Name of the output file
+         char *outfile) nogil:                                                          # Name of the output file
 
     """ Runs the simulation. Boundary conditions need to be put in EXPLICITLY in this file. 
     Grid is assumed to be of size nn_x x nn_y x nn_z on each process (total size is irrelevant to the calculations).

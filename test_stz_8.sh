@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH -p general
+#SBATCH -p shakhnovich
 #SBATCH -n 8
-#SBATCH -N 1-8
+#SBATCH -N 1
 #SBATCH -t 10
 #SBATCH --mem=500
 
@@ -12,8 +12,8 @@ module load Anaconda
 start_dir=$PWD
 mkdir -p /scratch/$USER/$SLURM_JOBID
 cp *.py /scratch/$USER/$SLURM_JOBID
-cp *.pyx /scratch/$USER/$SLURM_JOBID
 cp *.pxd /scratch/$USER/$SLURM_JOBID
+cp *.so /scratch/$USER/$SLURM_JOBID
 cp test.conf /scratch/$USER/$SLURM_JOBID
 cd /scratch/$USER/$SLURM_JOBID
 
