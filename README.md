@@ -62,7 +62,7 @@ To be included soon.
 
 ### Files
 
-`README.md` this description.
+`README.md` is what you are currently reading.
 
 `common.pyx` contains simple functions for accessing and setting `Field` values in the grid (see implementation details below). Associated `common.pxd` contains definitions.
 
