@@ -10,13 +10,13 @@ This code requires cython (http://cython.org/) and mpi4py (http://mpi4py.scipy.o
 
 ### Branches
 
-Pull the `master` branch for a serial implementation, `paralle_MPI` for the parallel implementation, or `odyssey` for code suited for running on Harvard University's Odyssey cluster.
+Pull the `master` branch for a serial implementation, `parallel_MPI` for the parallel implementation, or `odyssey` for code suited for running on Harvard University's Odyssey cluster.
 
 ### Download and Installation
 
 Grab your copy of the code with
 
-    git@github.com:thereisnoquarter/stz.git
+    git clone git@github.com:thereisnoquarter/stz.git
 
 Assuming you have cython installed, you can cause the program to compile to C with:
 
@@ -26,7 +26,9 @@ Assuming you have cython installed, you can cause the program to compile to C wi
 
 An example `test.conf` file is provided for configuration options. The file accepts values for the material Lame parameters and density, the size of the grid, the number of points in each dimension, the initial and final time, and an output file. This file can be modified directly or used as a template.To run a simulation with specific parameters, call:
 
-    python driver.py [your configuration file]
+    python driver.py your_config_file.conf
+
+where `your_config_file.conf` contained the relevant parameters for your problem.
 
 ### Initial and Boundary Conditions
 
