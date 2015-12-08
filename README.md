@@ -3,10 +3,14 @@ Code for simulating bulk metallic glasses in 3D using the shear transformation z
 
 To run the code, simply fill in a configuration file (test.conf) is provided as an example. Fill in the set_boundary_conditions() function located in sim.pyx for your desired boundary conditions. The code can then be run in serial with:
 
-python driver.py [your config file]
+    python driver.py [your config file]
 
 or:
 
-mpirun -np n python driver.py [your_config_file] 
+    mpirun -np n python driver.py [your_config_file] 
 
-to run in paralle, where n is the desired number of processors. If running with MPI for the first time, it is suitable to call python driver.py first to cause the Cython code to compile.
+to run in paralle, where `n` is the desired number of processors. If running with MPI for the first time, it is suitable to call
+
+    python driver.py
+
+first to cause the Cython code to compile.
