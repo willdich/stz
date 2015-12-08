@@ -60,7 +60,7 @@ This code simulates an elastoplastic material model for bulk metallic glasses ex
 
 To be included soon.
 
-### MPI Implementation Detai
+### MPI Implementation Details
 
 Our grid is represented by a three-dimensional array of `Field`s. `Field` is a simple struct defined in `fields.pxd`, and stores all of the required variables for the STZ theory (some are unused at the moment), as well as the change in these variables from timestep to timestep. The changes are calculated using the functions found in `update_fields.pyx` and the values themselves are updated using the inline function `update` found in `fields.pxd`. We use a staggered grid arrangement for numerical stability. The `Field` value at grid location `(x, y, z)` contains all of the velocity values at `(x, y, z)` as well as the stresses at `(x+1/2, y+1/2, z+1/2)`. This can be understood by dividing the grid up into small cubes: we assocate the `Field` at `(x, y, z)` with the velocities at the bottom left corner of the cube and the stresses at the center of the cube. This is depicted in the diagram below.
 
