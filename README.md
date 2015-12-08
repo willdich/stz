@@ -48,4 +48,4 @@ This code simulates an elastoplastic material model for bulk metallic glasses ex
 
 ## Contributors
 
-This code was completed by Anna Whitney and Nicholas Boffi as part of a project for CS205. The code will be continued to be maintained and updated with the remaining terms defining the STZ model by Nicholas Boffi in the weeks to come.
+This code was completed by Anna Whitney and Nicholas Boffi for the final project in CS205. The code will be maintained and updated with the remaining terms defining the STZ model by Nicholas Boffi.
