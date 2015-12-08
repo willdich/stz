@@ -2,6 +2,8 @@
 
 stz is a work-in-progress code for simulating bulk metallic glasses in 3D using the shear transformation zone theory of amorphous plasticity. At the moment, only linear elastic terms have been implemented. The code is written in Cython and has been parallelized through MPI via mpi4py. 
 
+# Getting Started
+
 ## Requirements
 
 This code requires cython (http://cython.org/) and mpi4py (http://mpi4py.scipy.org/).
@@ -38,12 +40,12 @@ To pull the parallel code, checkout the `parallel_MPI` branch. The code can be r
 
 where `n` is the number of processors.
 
-## Background Information
+# Background Information (for those who care)
 
 Bulk metallic glasses (BMGs) are an alloy whose atoms form an amorphous, random structure, in contrast to most metals. BMGs possess exceptional mechanical properties, such as high tensile strength, excellent wear resistance, and the ability to be efficiently molded and processed. They are under consideration for a wealth of technological applications, such as next-generation smartphone cases and aircraft components. However, their amorphous structure raises fundamental unanswered questions about their mechanical properties, which has hindered their usage in structural applications where they must be guaranteed not to fail.
 
 This code simulates an elastoplastic material model for bulk metallic glasses explicitly. The equations can be found in "C. H. Rycroft, Y. Sui, E. Bouchbinder, An Eulerian projection method for quasi-static elastoplasticity,  J. Comp. Phys. 300 (2015) 136-166". The explicit method implements at the moment only the equations of elasticity; additional terms need to be added to fully simulate hypoelastoplasticity in BMGs, and as such the current code is still a work in progress. The code generalizes what is found in the above reference to three dimensions. Parallelization is achieved by dividing the three dimensional grid into subdomains and using message passing at the boundaries to calculate derivatives.
 
-## Authors
+# Contributors
 
 This code was completed by Anna Whitney and Nicholas Boffi as part of a project for CS205. The code will be continued to be maintained and updated with the remaining terms defining the STZ model by Nicholas Boffi in the weeks to come.
