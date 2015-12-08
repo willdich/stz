@@ -30,7 +30,7 @@ An example `test.conf` file is provided for configuration options. The file acce
 
 where `your_config_file.conf` contained the relevant parameters for your problem. A picture of this process is also displayed below.
 
-![alt tag]((https://raw.github.com/thereisnoquarter/stz/parallel_MPI/pics/config_pic.png)
+[https://cloud.githubusercontent.com/assets/2105882/11645662/6ff992e2-9d24-11e5-81af-aa1021f735b6.png]
 
 ### Initial and Boundary Conditions
 
