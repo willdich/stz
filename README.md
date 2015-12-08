@@ -28,7 +28,9 @@ An example `test.conf` file is provided for configuration options. The file acce
 
     python driver.py your_config_file.conf
 
-where `your_config_file.conf` contained the relevant parameters for your problem.
+where `your_config_file.conf` contained the relevant parameters for your problem. A picture of this process is also displayed below.
+
+![alt tag]((https://raw.github.com/thereisnoquarter/stz/parallel_MPI/pics/config_pic.png)
 
 ### Initial and Boundary Conditions
 
