@@ -38,7 +38,11 @@ You will also need to implement the relevant boundary conditions for the problem
 
 ### Parallel 
 
-To pull the parallel code, checkout the `parallel_MPI` branch. The code can be run just as in the case of the serial file by calling:
+To pull the parallel code, checkout the `parallel_MPI` branch:
+
+    git checkout parallel_MPI
+
+ The code can be run just as in the case of the serial file by calling:
 
     mpirun -np n driver.py [your configuration file]
 
