@@ -8,7 +8,7 @@ import numpy as np
 #environ['LDFLAGS'] = '-Lm -lm'
 
 # Automatic Cython file compilation
-import pyximport
+#import pyximport
 #pyximport.install(setup_args={"include_dirs":[np.get_include(), mpi4py.get_include()]})
 
 from parse_input import parse_input
