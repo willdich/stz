@@ -76,7 +76,7 @@ To be included soon.
 
 `sim.pyx` contains the bulk of the simulation code. `go` is the main function, and iterates over the entire grid for each timestep, updating all values of the velocities and stresses at each grid point. `set_boundary_conditions()` is used to set boundary/initial conditions.The function currently implements shear wave initial conditions. For an additional example, see `compressive_wave_test.pyx` which implements compressive wave initial conditions. `set_up_ghost_regions()` instantiates the ghost regions in parallel code (as described in the implementation details below) or enforces periodic boundaries in the serial code.
 
-`update_fields.pyx` contains code implementing the defining equations of hypoelastoplasticity (linear elasticity at the moment), and returns the *change* in each `Field` at the current timestep. The associated `update_fields.pxd` file contains definitions.
+`update_fields.pyx` contains code implementing the defining equations of hypoelastoplasticity (linear elasticity at the moment) by calculating the *change* in each `Field` at the current timestep. The associated `update_fields.pxd` file contains definitions.
 
 `test.conf` provides an example configuration file.
 
