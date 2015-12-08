@@ -6,7 +6,7 @@
 
 ### Requirements
 
-This code requires cython (http://cython.org/) and mpi4py (http://mpi4py.scipy.org/).
+This code requires Cython (http://cython.org/) and mpi4py (http://mpi4py.scipy.org/).
 
 ### Branches
 
@@ -18,7 +18,7 @@ Grab your copy of the code with
 
     git clone git@github.com:thereisnoquarter/stz.git
 
-Assuming you have cython installed, you can cause the program to compile to C with:
+Assuming you have Cython installed, you can cause the program to compile to C with:
 
     python driver.py
 
