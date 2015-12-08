@@ -44,7 +44,7 @@ To pull the parallel code, checkout the `parallel_MPI` branch:
 
  The code can be run just as in the case of the serial file by calling:
 
-    mpirun -np n driver.py [your configuration file]
+    mpirun -np n python driver.py [your configuration file]
 
 where `n` is the number of processors.
 
