@@ -36,7 +36,7 @@ where `your_config_file.conf` contained the relevant parameters for your problem
 
 You will also need to implement the relevant boundary conditions for the problem you wish to solve. This is done in the `set_boundary_conditions()` function in `sim.pyx`. Shear wave initial conditions have been provided as an example to demonstrate how to implement initial conditions. Note that in the parallel case, to properly load in initial conditions it is necessary to account for the fact that each processor is shifted in space. These shifts can be computed simply using `cx`, `cy`, and `cz`, the indices of the processor in the Cartesian communicator (described more in detail in the technical details below). Simply multiply each Cartesian index `ci` by the number of subdomain grid elements in that direction, `n_i`.
 
-### Parallel 
+### Parallel Branch 
 
 To pull the parallel code, checkout the `parallel_MPI` branch:
 
@@ -60,7 +60,31 @@ This code simulates an elastoplastic material model for bulk metallic glasses ex
 
 To be included soon.
 
-### MPI Implementation Details
+### Files
+
+`README.md` is what you are currently reading.
+
+`common.pyx` contains simple functions for accessing and setting `Field` values in the grid (see implementation details below). Associated `common.pxd` contains definitions.
+
+`driver.py` Python driver program which calls the required Cython functions to execute the simulation.
+
+`fields.pxd` contains definitions for the `Field` struct and assocated inline `update` function.
+
+`parse_input.py` contains code to preprocess the input `.conf` file.
+
+`plots.ipynb` contains simple plotting utilities for visualizing the output.
+
+`sim.pyx` contains the bulk of the simulation code. `go` is the main function, and iterates over the entire grid for each timestep, updating all values of the velocities and stresses at each grid point. `set_boundary_conditions()` is used to set boundary/initial conditions.The function currently implements shear wave initial conditions. For an additional example, see `compressive_wave_test.pyx` which implements compressive wave initial conditions. `set_up_ghost_regions()` instantiates the ghost regions in parallel code (as described in the implementation details below) or enforces periodic boundaries in the serial code.
+
+`update_fields.pyx` contains code implementing the defining equations of hypoelastoplasticity (linear elasticity at the moment) by calculating the *change* in each `Field` at the current timestep. The associated `update_fields.pxd` file contains definitions.
+
+`test.conf` provides an example configuration file.
+
+### Implementation Details
+
+Our grid is represented by a three-dimensional array of `Field`s and is stored as the variable `grid`. `Field` is a simple struct defined in `fields.pxd`, and stores all of the required variables for the STZ theory (some are unused at the moment), as well as the change in these variables from timestep to timestep. The changes are calculated using the functions found in `update_fields.pyx` and the values themselves are updated using the inline function `update` found in `fields.pxd`. The changes must first be calculated across the whole grid before applying updates so that derivatives of `Field` values at timestep `n` are calculated only using adjacent `Field` values from timestep `n` and not *some* values from timestep `n+1`. We use a staggered grid arrangement for numerical stability. The `Field` value at grid location `(x, y, z)` contains all of the velocity values at `(x, y, z)` as well as the stresses at `(x+1/2, y+1/2, z+1/2)`. This can be understood by dividing the grid up into small cubes: we assocate the `Field` at `(x, y, z)` with the velocities at the bottom left corner of the cube and the stresses at the center of the cube. This is depicted in the diagram below.
+
+![](https://cloud.githubusercontent.com/assets/2105882/11661414/d1658ba0-9d9f-11e5-8be0-ae679f8f0bc8.png)
 
 To achieve parallelization, we divide our spatial grid into `n` subdomains where `n` is the number of processors. This is handled simply using a Cartesian Communicator as provided by `MPI`, where we associate the processor with index `(0, 0, 0)` with the bottom-left corner of our grid, `(1, 0, 0)` with an equally-sized subdomain whose origin is shifted by `n_x` where `n_x` is the number of x grid points in a subdomain, etc.. This generalizes naturally to arbitrary indices.
 
@@ -70,17 +94,19 @@ To store these communicated values, we pad each subdomain with a "ghost region" 
 
 First, if two processors share a face, the two processors must share their (opposite, in the sense as described above) faces with each other.
 
-(image here)
+![](https://cloud.githubusercontent.com/assets/2105882/11661416/d171c88e-9d9f-11e5-8e12-3e92bf0f7728.png)
+
+Please note that the cubes in the above diagram correspond to *processor subdomains*, and hence contain many of the `Field` cubes in the first schematic in this section.
 
 Second, if two processors share an edge, these edges must be communicated in the same way.
 
-(image here)
+![](https://cloud.githubusercontent.com/assets/2105882/11661415/d170ed92-9d9f-11e5-81a4-2a68fec37d61.png)
 
 Last, if two processors share a corner, they must share this individual value with each other.
 
-(image here)
+![](https://cloud.githubusercontent.com/assets/2105882/11661417/d173c36e-9d9f-11e5-97d2-e1c1bc8b0416.png)
 
-In total, there are six faces, twelve edges, and eight corners, leading to 26 portions of the local subdomain that each processor must send out to adjacent processors, and 26 portions of adjacent subdomains that each processor must receive from nearby processors before being capable of computing spatial derivatives in their subdomain. Once a processor's ghost region has been populated, they are free to calculate derivatives at all of their physical grid locations with no consideration of edge cases. Clearly derivatives do not need to be calculated in ghost regions as they correspond to points in adjacent processors and are calculated in *those* processors. Note that the ghost regions must be repopulated at every timestep in accordance with the update of values across the grid.
+In total, there are six faces, twelve edges, and eight corners, leading to 26 portions of the local subdomain that each processor must send out to adjacent processors, and 26 portions of adjacent subdomains that each processor must receive from nearby processors before being capable of computing spatial derivatives in their subdomain. Once a processor's ghost region has been populated, said processor is free to calculate derivatives at all physical grid locations contained in the corresponding subdomain with no consideration of edge cases. Derivatives do not need to be calculated in ghost regions as they correspond to points in adjacent processors and are calculated in *those* processors. Note that the ghost regions must be repopulated at every timestep in accordance with the update of values across the grid.
 
 
 ## Contributors
