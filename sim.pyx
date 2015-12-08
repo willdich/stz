@@ -5,7 +5,7 @@ from libc.stdio cimport printf, sprintf, fprintf, fopen, fclose, FILE, putchar
 cimport libc.math
 from common cimport *
 from update_fields cimport *
-cimport mpi4py.mpi_c as mpi
+from mpi4py cimport mpi_c as mpi
 
 # Defined as int rather than void because the older version of Cython on Odyssey (0.20.1) does not support cpdef void
 # (newer version - 0.23.4 - just returns "None" for cpdef void if called from Python)

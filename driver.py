@@ -10,6 +10,7 @@ import numpy as np
 # Automatic Cython file compilation
 #import pyximport
 #pyximport.install(setup_args={"include_dirs":[np.get_include(), mpi4py.get_include()]})
+from mpi4py import MPI
 
 from parse_input import parse_input
 from sim import go

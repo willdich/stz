@@ -2,7 +2,7 @@
 #SBATCH -p shakhnovich
 #SBATCH -n 8
 #SBATCH -N 1
-#SBATCH -t 10
+#SBATCH -t 60
 #SBATCH --mem=5000
 #SBATCH --mail-type=END
 #SBATCH --mail-user=awhitney@college.harvard.edu
@@ -21,7 +21,7 @@ cp *.so /scratch/$USER/$SLURM_JOBID
 cp test.conf /scratch/$USER/$SLURM_JOBID
 cd /scratch/$USER/$SLURM_JOBID
 
-mpiexec -n 8 python driver.py test.conf
+mpiexec -n 8 python driver_timed.py test.conf
 
 cp *.out *.dat $start_dir/
 cd $start_dir

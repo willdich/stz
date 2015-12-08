@@ -9,8 +9,9 @@ import numpy as np
 #environ['LDFLAGS'] = '-Lm -lm'
 
 # Automatic Cython file compilation
-import pyximport
+#import pyximport
 #pyximport.install(setup_args={"include_dirs":[np.get_include(), mpi4py.get_include()]})
+from mpi4py import MPI
 
 from timer import Timer
 from parse_input import parse_input
@@ -47,5 +48,5 @@ if __name__ == '__main__':
     with Timer() as t:
         go(*opts)
 
-    with open('time-' + opts[-1]) as timer_outfile:
+    with open('time-' + opts[-1], 'w') as timer_outfile:
         print(t.interval, file=timer_outfile)
