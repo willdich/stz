@@ -62,13 +62,13 @@ To be included soon.
 
 ### MPI Implementation Details
 
-To achieve parallelization, we divide our spatial grid into `n` subdomains where `n` is the number of processors. This is handled simply using a Cartesian Communicator as provided by `MPI`, where we associate the processor with index `(0, 0, 0)` with the bottom-left corner of our grid, `(1, 0, 0)` with the an equally-sized box whose origin is shifted by `n_x` where `n_x` is the number of x grid points in a subdomain. This generalizes naturally to every other dimension.
+To achieve parallelization, we divide our spatial grid into `n` subdomains where `n` is the number of processors. This is handled simply using a Cartesian Communicator as provided by `MPI`, where we associate the processor with index `(0, 0, 0)` with the bottom-left corner of our grid, `(1, 0, 0)` with an equally-sized subdomain whose origin is shifted by `n_x` where `n_x` is the number of x grid points in a subdomain, etc.. This generalizes naturally to arbitrary indices.
 
 For the most part, these subdomains are disconnected, and each processor can solve the equations on their own subdomain. However, because the equations of linear elasticity (and of course hypoelastoplasticity as well, although these are not implemented at the moment) involve spatial derivatives, they are nonlocal. Hence calculating the value of spatial derivatives located at the boundary of a subdomain require field values that are stored in adjacent processors. This requirement is symmetric; for example, if processor `n` requires points from the left-most boundary of processor `m`'s domain, then it necessarily follows that processor `m` requires points from the right-most boundary of processor `n`'s domain. These communications can be handled naturally using the Cartesian communicator's `MPI_Cart_shift` function in conjunction with `MPI_Sendrecv_replace`.
 
-To handle the need of communicating these values, we pad each subdomain with a "ghost region" which surrounds the physical space the processor is solving the equations within. This the ghost region for each process is propulated at the beginning of each timestep with the required adjacent values by the `set_up_ghost_regions()` function. There are three cases that must be considered.
+To store these communicated values, we pad each subdomain with a "ghost region" which surrounds the physical space the processor is solving the equations within. The ghost region for each process is populated at the beginning of each timestep with the required adjacent values by the `set_up_ghost_regions()` function located in `sim.pyx`. There are three cases that must be considered.
 
-First, if two processors share a face, the two processors must share their (opposite, in the sense as described above) planes with each other.
+First, if two processors share a face, the two processors must share their (opposite, in the sense as described above) faces with each other.
 
 (image here)
 
@@ -80,7 +80,7 @@ Last, if two processors share a corner, they must share this individual value wi
 
 (image here)
 
-In total, there are six faces, twelve edges, and eight corners, totalling 26 portions of the grid that each processor must send out to adjacent processors, and 26 portions of that grid that each processor must receive from adjacent processors before being capable of computing spatial derivatives in their subdomain. Once a processor's ghost region has been populated, they are free to calculate derivatives at all of their physical grid locations. Clearly derivatives do not need to be calculated in ghost regions as they correspond to points in adjacent processors and are calculated there. Note that the ghost regions must be repopulated at every timestep in accordance with the update of values across the grid.
+In total, there are six faces, twelve edges, and eight corners, leading to 26 portions of the local subdomain that each processor must send out to adjacent processors, and 26 portions of adjacent subdomains that each processor must receive from nearby processors before being capable of computing spatial derivatives in their subdomain. Once a processor's ghost region has been populated, they are free to calculate derivatives at all of their physical grid locations with no consideration of edge cases. Clearly derivatives do not need to be calculated in ghost regions as they correspond to points in adjacent processors and are calculated in *those* processors. Note that the ghost regions must be repopulated at every timestep in accordance with the update of values across the grid.
 
 
 ## Contributors
