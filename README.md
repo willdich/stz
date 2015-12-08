@@ -74,15 +74,15 @@ To store these communicated values, we pad each subdomain with a "ghost region" 
 
 First, if two processors share a face, the two processors must share their (opposite, in the sense as described above) faces with each other.
 
-(image here)
+![](https://cloud.githubusercontent.com/assets/2105882/11661416/d171c88e-9d9f-11e5-8e12-3e92bf0f7728.png)
 
 Second, if two processors share an edge, these edges must be communicated in the same way.
 
-(image here)
+![](https://cloud.githubusercontent.com/assets/2105882/11661415/d170ed92-9d9f-11e5-81a4-2a68fec37d61.png)
 
 Last, if two processors share a corner, they must share this individual value with each other.
 
-(image here)
+![](https://cloud.githubusercontent.com/assets/2105882/11661417/d173c36e-9d9f-11e5-97d2-e1c1bc8b0416.png)
 
 In total, there are six faces, twelve edges, and eight corners, leading to 26 portions of the local subdomain that each processor must send out to adjacent processors, and 26 portions of adjacent subdomains that each processor must receive from nearby processors before being capable of computing spatial derivatives in their subdomain. Once a processor's ghost region has been populated, they are free to calculate derivatives at all of their physical grid locations with no consideration of edge cases. Clearly derivatives do not need to be calculated in ghost regions as they correspond to points in adjacent processors and are calculated in *those* processors. Note that the ghost regions must be repopulated at every timestep in accordance with the update of values across the grid.
 
