@@ -4,7 +4,7 @@ stz is a work-in-progress code for simulating bulk metallic glasses in 3D using 
 
 ## Getting Started
 
-E## Requirements
+### Requirements
 
 This code requires cython (http://cython.org/) and mpi4py (http://mpi4py.scipy.org/).
 
