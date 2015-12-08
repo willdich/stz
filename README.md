@@ -19,7 +19,7 @@ Assuming you have cython installed, you can cause the program to compile to C wi
 
 ## Simulation Paramaters
 
-An example `test.conf` file is provided for configuration options. The file accepts values for the material Lame parameters and density, the size of the grid, the number of points in each dimension, the initial and final time, and an output file. This file can me modified directly or used as a template.To run a simulation with specific parameters, call:
+An example `test.conf` file is provided for configuration options. The file accepts values for the material Lame parameters and density, the size of the grid, the number of points in each dimension, the initial and final time, and an output file. This file can be modified directly or used as a template.To run a simulation with specific parameters, call:
 
     python driver.py [your configuration file]
 
@@ -27,7 +27,7 @@ simple, right?
 
 ## Initial and Boundary Conditions
 
-You will also need to implement the relevant boundary conditions for the problem you wish to solve. This is done in the `set_boundary_conditions()` function in `sim.pyx`.
+You will also need to implement the relevant boundary conditions for the problem you wish to solve. This is done in the `set_boundary_conditions()` function in `sim.pyx`. Shear wave initial conditions have been provided as an example to demonstrate how to implement initial conditions.
 
 ## Parallel Code
 
@@ -36,3 +36,9 @@ To pull the parallel code, checkout the `parallel_MPI` branch. The code can be r
     mpirun -np n driver.py [your configuration file]
 
 where `n` is the number of processors.
+
+## Background Information
+
+Bulk metallic glasses (BMGs) are an alloy whose atoms form an amorphous, random structure, in contrast to most metals. BMGs possess exceptional mechanical properties, such as high tensile strength, excellent wear resistance, and the ability to be efficiently molded and processed. They are under consideration for a wealth of technological applications, such as next-generation smartphone cases and aircraft components. However, their amorphous structure raises fundamental unanswered questions about their mechanical properties, which has hindered their usage in structural applications where they must be guaranteed not to fail.
+
+This code simulates an elastoplastic material model for bulk metallic glasses explicitly. The equations can be found in "C. H. Rycroft, Y. Sui, E. Bouchbinder, An Eulerian projection method for quasi-static elastoplasticity,  J. Comp. Phys. 300 (2015) 136-166". The explicit method implements at the moment only the equations of elasticity; additional terms need to be added to fully simulate hypoelastoplasticity in BMGs, and as such the current code is still a work in progress. The code generalizes what is found in the above reference to three dimensions. Parallelization is achieved by dividing the three dimensional grid into subdomains and using message passing at the boundaries to calculate derivatives.
