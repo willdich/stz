@@ -76,6 +76,8 @@ First, if two processors share a face, the two processors must share their (oppo
 
 ![](https://cloud.githubusercontent.com/assets/2105882/11661416/d171c88e-9d9f-11e5-8e12-3e92bf0f7728.png)
 
+Please note that the cubes in the above diagram correspond to *processor subdomains*, and hence contain many of the `Field` cubes in the first schematic in this section.
+
 Second, if two processors share an edge, these edges must be communicated in the same way.
 
 ![](https://cloud.githubusercontent.com/assets/2105882/11661415/d170ed92-9d9f-11e5-81a4-2a68fec37d61.png)
