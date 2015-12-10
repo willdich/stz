@@ -66,6 +66,8 @@ For very small problem sizes such as the 16 x 16 x 16 grid, increasing the numbe
 
 Even though the parallel code does not offer a speedup relative to the serial code, it does add value by allowing larger grid sizes to be calculated. A 512 x 512 x 512 grid will not fit in the memory allocated to a single core on Odyssey, but it will fit in 8 or more cores. It is thus not possible to calculate a grid that large in serial without using hardware with significantly larger available memory, but extrapolating from running times on the smaller problems, if we had that hardware available, it would take 11.5-12 hours to calculate this entire grid. With 64 cores on Odyssey, it takes about ten hours, which is faster than we would expect the serial implementation to reach and does not require special hardware beyond the normal nodes of the cluster.
 
+It would also be possible to run the MPI-parallelized code across nodes, which could provide more than 64 cores. However, even with the special MPI communication hardware of the Odyssey cluster, communication between nodes is slower than communication between cores of the same node, so this might only speed up the code relative to running on 64 cores for extremely large problems.
+
 ### Files
 
 `README.md` is what you are currently reading.
