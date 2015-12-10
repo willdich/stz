@@ -36,17 +36,32 @@ where `your_config_file.conf` contained the relevant parameters for your problem
 
 You will also need to implement the relevant boundary conditions for the problem you wish to solve. This is done in the `set_boundary_conditions()` function in `sim.pyx`. Shear wave initial conditions have been provided as an example to demonstrate how to implement initial conditions. Note that in the parallel case, to properly load in initial conditions it is necessary to account for the fact that each processor is shifted in space. These shifts can be computed simply using `cx`, `cy`, and `cz`, the indices of the processor in the Cartesian communicator (described more in detail in the technical details below). Simply multiply each Cartesian index `ci` by the number of subdomain grid elements in that direction, `n_i`.
 
-### Parallel Branch 
+### Running on Odyssey
 
-To pull the parallel code, checkout the `parallel_MPI` branch:
+To pull the code suitable for Odyssey, checkout the `odyssey` branch:
 
-    git checkout parallel_MPI
+    git checkout odyssey
 
- The code can be run just as in the case of the serial file by calling:
+ The code can be run by submitting a script to Odyssey's SLURM resource manager. An example might look like the below:
 
-    mpirun -np n python driver.py [your configuration file]
+    #!/bin/bash
+    #SBATCH -p shakhnovich
+    #SBATCH -n NUM_PROCS
+    #SBATCH -N 1
+    #SBATCH -t 60
+    #SBATCH --mem=5000
+    #SBATCH --mail-type=END
+    #SBATCH --mail-user=awhitney@college.harvard.edu
 
-where `n` is the number of processors.
+    source new-modules.sh
+    module load gcc
+    module load Anaconda
+
+    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/n/sw/fasrcsw/apps/Core/Anaconda/1.9.2-fasrc01/x/lib/mpi4py/include/
+
+    mpiexec -n NUM_PROCS python driver.py confs/<your configuration file>
+
+where `NUM_PROCS` is the number of processors. More example runscripts can be found in the `runscripts` directory.
 
 ## Background Information
 
