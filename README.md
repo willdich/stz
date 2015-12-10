@@ -83,6 +83,8 @@ Even though the parallel code does not offer a speedup relative to the serial co
 
 It would also be possible to run the MPI-parallelized code across nodes, which could provide more than 64 cores. However, even with the special MPI communication hardware of the Odyssey cluster, communication between nodes is slower than communication between cores of the same node, so this might only speed up the code relative to running on 64 cores for extremely large problems.
 
+It would be possible to decrease the communication overhead associated with using MPI, as well, by using the `Isend` and `Irecv` family of functions (non-blocking communications) rather than the `Send` and `Recv` functions. `Send` and `Recv` can cause the data being sent to be serialized, substantially slowing down the code. `Isend` and `Irecv` instead require you to manually set a barrier to coordinate processes. We did not have time to explore this possibility due to the difficulty of porting our code between different Cython and MPI versions to run it on Odyssey.
+
 ### Files
 
 `README.md` is what you are currently reading.
