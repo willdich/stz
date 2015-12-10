@@ -16,7 +16,8 @@ cpdef int go(int N_x, int N_y, int N_z, int N_t,                                
          np.float64_t t_0, np.float64_t t_f,                                            # Initial and final time, list of time points
          char *outfile) nogil:                                                          # Name of the output file
 
-    """ Runs the simulation. Boundary conditions need to be put in EXPLICITLY in this file. 
+    """
+    Runs the simulation. Boundary conditions need to be put in EXPLICITLY in this file. 
     Grid is assumed to be of size nn_x x nn_y x nn_z on each process (total size is irrelevant to the calculations).
     The fourth dimension of the variable grid are all the parameters in the Field stored at grid[x, y, z].
     """
