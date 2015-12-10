@@ -58,7 +58,7 @@ This code simulates an elastoplastic material model for bulk metallic glasses ex
 
 ### Benchmarking
 
-Because MPI introduces a large amount of communication overhead, our parallel code is actually slower than the serial equivalent for problem sizes that fit within a single core. Based on memory limits on Odyssey, grids up to about 300 x 300 x 300 points are the largest that can be accommodated on a single core.
+Because MPI introduces a large amount of communication overhead, our parallel code is actually slower than the serial equivalent for problem sizes that fit within a single core. Based on memory limits on Odyssey, grids up to about 300 x 300 x 300 points are the largest that can be accommodated on a single core. The below graph compares parallel performance on different problem sizes with different numbers of processors to serial performance (dotted lines).
 
 ![final project benchmark graph](https://cloud.githubusercontent.com/assets/10450394/11721086/0e8572e8-9f30-11e5-9cc5-8bba5843e635.png)
 
