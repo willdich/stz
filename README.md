@@ -58,7 +58,13 @@ This code simulates an elastoplastic material model for bulk metallic glasses ex
 
 ### Benchmarking
 
-To be included soon.
+Because MPI introduces a large amount of communication overhead, our parallel code is actually slower than the serial equivalent for problem sizes that fit within a single core. Based on memory limits on Odyssey, grids up to about 300 x 300 x 300 points are the largest that can be accommodated on a single core.
+
+![final project benchmark graph](https://cloud.githubusercontent.com/assets/10450394/11721086/0e8572e8-9f30-11e5-9cc5-8bba5843e635.png)
+
+For very small problem sizes such as the 16 x 16 x 16 grid, increasing the number of processors substantially increases the communication overhead without significantly speeding up the computation (since there is so little computation to begin with), so adding more processors increases the overall running time. As problem sizes increase (e.g., for the 128 x 128 x 128 or 256 x 256 x 256 grid), we do see some speedup with greater numbers of processors, although not to the point of matching the serial solution.
+
+Even though the parallel code does not offer a speedup relative to the serial code, it does add value by allowing larger grid sizes to be calculated. A 512 x 512 x 512 grid will not fit in the memory allocated to a single core on Odyssey, but it will fit in 8 or more cores. It is thus not possible to calculate a grid that large in serial without using hardware with significantly larger available memory, but extrapolating from running times on the smaller problems, if we had that hardware available, it would take 11.5-12 hours to calculate this entire grid. With 64 cores on Odyssey, it takes about ten hours, which is faster than we would expect the serial implementation to reach and does not require special hardware beyond the normal nodes of the cluster.
 
 ### Files
 
