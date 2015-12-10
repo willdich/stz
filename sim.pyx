@@ -14,7 +14,8 @@ cpdef void go(int N_x, int N_y, int N_z, int N_t,                               
          np.float64_t t_0, np.float64_t t_f,                                            # Initial and final time, list of time points
          char *outfile) nogil:                                                            # Name of the output file
 
-    """ Runs the simulation. Boundary conditions need to be put in EXPLICITLY in this file. 
+    """
+    Runs the simulation. Boundary conditions need to be put in EXPLICITLY in this file. 
     Grid is assumed to be of size nn_x x nn_y x nn_z on each process (total size is irrelevant to the calculations).
     The fourth dimension of the variable grid are all the parameters in the Field stored at grid[x, y, z].
     """
@@ -38,18 +39,9 @@ cpdef void go(int N_x, int N_y, int N_z, int N_t,                               
         char *printbuf = <char *> malloc(numchars * sizeof(char))       # Printing
         char *allprint                                                  # Printing
         int i                                                           # index for printing
-        int *displs                                                     # for printing
-        int *recvcounts                                                 # for printing
 
-    # Initialize MPI Cartesian communicator
     # Puts the total number of processors used to run the code into size
     mpi.MPI_Comm_size(mpi.MPI_COMM_WORLD, size)
-
-    displs = <int *> malloc(size[0] * sizeof(int))
-    recvcounts = <int *> malloc(size[0] * sizeof(int))
-    for i in range(size[0]):
-        displs[i] = i * size[0]
-        recvcounts[i] = size[0]
 
     # Calculate the dimensions of the overall grid in terms of number of processors
     get_dims(size[0], dims)
@@ -78,18 +70,17 @@ cpdef void go(int N_x, int N_y, int N_z, int N_t,                               
         allprint = NULL
 
     # Determine grid size per processor
-    # Probably need to be more careful to ensure even division
     nn_x = N_x / dims[0]
     nn_y = N_y / dims[1]
     nn_z = N_z / dims[2]
 
-    # Calculate the offsets
+    # Calculate the physical position offset from the origin of the "global grid" to the grid belonging to this process
+    # There are no global variables in MPI, so this affects the numerical contents of our grid but not the indices we access
     xoff = cc[0] * nn_x
     yoff = cc[1] * nn_y
     zoff = cc[2] * nn_z
 
     # Allocate the local grid, now including space for the ghost regions
-    # Unlike in the serial case, these must now be communicated between processors
     grid = <Field *> malloc((nn_x + 2) * (nn_y + 2) * (nn_z + 2) * sizeof(Field))
 
     # Initialize the values that every Field will start with.
@@ -99,30 +90,25 @@ cpdef void go(int N_x, int N_y, int N_z, int N_t,                               
     # Set the output file
     fp = fopen(outfile, "w")
 
-    # Instantiate the grid
+    # Fill the grid with zeros to start with
     for xx in range(nn_x + 2):
         for yy in range(nn_y + 2):
             for zz in range(nn_z + 2):
                 set_val(grid, nn_x, nn_y, nn_z, xx, yy, zz, <Field *> initial_field_values)
 
 
-    # Plug in any relevant boundary conditions (manually)
-    # Note that, now unlike serial, we need to take our local coordinates in the Cartesian communicator
+    # Plug in any relevant initial conditions and boundary conditions (manually)
+    # Note that, now unlike serial, we need to take into account our local coordinates in the Cartesian communicator
     set_boundary_conditions(grid, nn_x, nn_y, nn_z,
                             cc[0], cc[1], cc[2],
                             dims[0], dims[1], dims[2], dx,
                             L_x, L_y, L_z,
                             mu, rho)
-    #set_dummy_boundary_conditions(grid, nn_x, nn_y, nn_z,
-    #                        cc[0], cc[1], cc[2],
-    #                        dims[0], dims[1], dims[2], dx,
-    #                        L_x, L_y, L_z,
-    #                        mu, rho)
 
-    # Run the simulation
+    # Run the simulation for N_t timesteps
     for t_ind in range(N_t):
 
-        # Update the ghost regions to enforce periodicity
+        # Update the ghost regions by communicating with adjacent processes
         set_up_ghost_regions(grid, comm, cc[0], cc[1], cc[2], nn_x, nn_y, nn_z)
 
         # Current time
@@ -157,8 +143,10 @@ cpdef void go(int N_x, int N_y, int N_z, int N_t,                               
                     curr_grid_element = look_up(grid, nn_x, nn_y, nn_z, xx, yy, zz)
                     update(curr_grid_element) 
 
+                    # Only print every five timesteps
+                    # Because the shear wave solution is not y- or z-dependent, we print for all x values
+                    # but only one specific y/z value (since all the y & z values are identical).
                     if ((yy == 1) and (zz == 1) and (t_ind % 5 == 0)):
-                        #printf("%d %f %d %f %d %f \n", xx, xx * dx, yy, yy * dy, zz, zz * dz)
 
                         # Calculate the value of the shear waves
                         # We use xx - 1 because xx = 1 corresponds to x = 0: xx=0 is the ghost region!
@@ -174,9 +162,12 @@ cpdef void go(int N_x, int N_y, int N_z, int N_t,                               
                                 libc.math.pow(libc.math.fabs(curr_grid_element.v - curr_v_shear), 2),
                                 libc.math.pow(libc.math.fabs(curr_grid_element.s12 - curr_sig_shear), 2))
 
+                        # The root process gathers all the strings into a single buffer
                         mpi.MPI_Gather(printbuf, numchars, mpi.MPI_CHAR,
                                        allprint, numchars, mpi.MPI_CHAR,
                                        0, comm)
+
+                        # And prints them from the buffer to the output file
                         if rank[0] == 0:
                             for i in range(size[0]):
                                 fprintf(fp, "%s\n", allprint + (i * numchars))
@@ -187,23 +178,25 @@ cpdef void go(int N_x, int N_y, int N_z, int N_t,                               
     free(printbuf)
     if rank[0] == 0:
         free(allprint)
+
     free(grid)
+
     
 cdef void set_up_ghost_regions(Field *grid,                                   # Our grid for this process
                                mpi.MPI_Comm comm, int c_x, int c_y, int c_z,  # MPI cartesian communicator & our position in it
                                int nn_x, int nn_y, int nn_z) nogil:           # Number of non-ghost points in each dimension
 
-    """ Sets the ghost regions as necessary. In the serial implementation, this is just simple 
-    periodic boundary conditions. This function will become more complex when moving to the parallel implementation
-    with MPI-based communcation across processors.
+    """
+    Sets the ghost regions as necessary, using the MPI Cartesian communicator to pass edge values to the ghost regions of
+    adjacent processes and receive corresponding values in return.
     """
 
     cdef:
         int xx, yy, zz
         int back, forward                                 # ranks of procs to send/recv ghost regions
-        mpi.MPI_Datatype fieldtype
-        mpi.MPI_Status status
-        Field *buf_plane_z = <Field *> malloc((nn_x + 2) * (nn_y + 2) * sizeof(Field))
+        mpi.MPI_Datatype fieldtype                        # MPI datatype corresponding to our Field
+        mpi.MPI_Status status                             # status of communication
+        Field *buf_plane_z = <Field *> malloc((nn_x + 2) * (nn_y + 2) * sizeof(Field)) # buffer to exchange planes
 
     mpi.MPI_Type_contiguous(20, mpi.MPI_FLOAT, &fieldtype)
     mpi.MPI_Type_commit(&fieldtype)
@@ -439,60 +432,29 @@ cdef void set_up_ghost_regions(Field *grid,                                   # 
 
     free(buf_line_xy)
 
-cdef void set_dummy_boundary_conditions(Field *grid,                                                  # Grid
-                                  int nn_x, int nn_y, int nn_z,                                 # Number of grid points not in the ghost region
-                                  int cx, int cy, int cz,                                       # Cartesian location of the current processor
-                                  int npx, int npy, int npz,                                    # Number of processors in each dimension
-                                  np.float64_t dx,                                              # Grid spacing
-                                  np.float64_t L_x, np.float64_t L_y, np.float64_t L_z,         # Grid dimensions
-                                  np.float64_t mu, np.float64_t rho) nogil:                     # Material density and mu
+
+cdef void set_boundary_conditions(Field *grid,                                  # Grid
+                  int nn_x, int nn_y, int nn_z,                                 # Number of grid points not in the ghost region
+                  int cx, int cy, int cz,                                       # Cartesian location of the current processor
+                  int npx, int npy, int npz,                                    # Number of processors in each dimension
+                  np.float64_t dx,                                              # Grid spacing
+                  np.float64_t L_x, np.float64_t L_y, np.float64_t L_z,         # Grid dimensions
+                  np.float64_t mu, np.float64_t rho) nogil:                     # Material density and mu
 
     """ Instantiates shear wave boundary/initial conditions """
     cdef:
         int xx, yy, zz                                        # Loop indices
-        Field *curr_field
-       
-    # Just set one point on one edge to nonzero
-    xx = 1
-    yy = 1
-    zz = 1
-    curr_field = look_up(grid, nn_x, nn_y, nn_z, xx, yy, zz)
-    curr_field.v = 0.1
-    curr_field.s12 = 0.1
-
-cdef void set_boundary_conditions(Field *grid,                                                  # Grid
-                                  int nn_x, int nn_y, int nn_z,                                 # Number of grid points not in the ghost region
-                                  int cx, int cy, int cz,                                       # Cartesian location of the current processor
-                                  int npx, int npy, int npz,                                    # Number of processors in each dimension
-                                  np.float64_t dx,                                              # Grid spacing
-                                  np.float64_t L_x, np.float64_t L_y, np.float64_t L_z,         # Grid dimensions
-                                  np.float64_t mu, np.float64_t rho) nogil:                     # Material density and mu
-
-    """ Instantiates shear wave boundary/initial conditions """
-    cdef:
-        int xx, yy, zz                                        # Loop indices
-        int phys_p_cx, phys_p_cy, phys_p_cz                   # "Physical" cartesian indices where the processor indexing starts at the bottom left corner
         int x_off, y_off, z_off                               # Offsets due to our processor location in the grid
-        Field *curr_field
+        Field *curr_field                                     # Pointer to Field being adjusted
         
-    # Calculate the offsets due to the processor's location
-    # We assume that nn_x, nn_y, nn_z are identical for all processors
-    # For shear wave boundary conditions, y_off and z_off are not needed - but they will be in general
-    # See http://ppomorsk.sharcnet.ca/Lecture_2_b_topologies.pdf for a 2D Diagram
-    # Indexing starts at the topleftmost corner with (0, 0, 0) - we have (0, 0, 0) at the bottomleftmost corner
-    # Note that x stays the same, but y and z flip
-    phys_p_cx = cx
-    phys_p_cy = cy 
-    phys_p_cz = cz
-
-    # Now calculate the offset relative to the overall grid
-    # This uses the physical cartesian index because it makes the most sense
-    # For every processor in the x direction in the "physical division", we have an extra nn_x + 2 points counting ghost
-    x_off = phys_p_cx * (nn_x)
+    # Calculate the offset relative to the "global grid"
+    # There are no globals in MPI, but we want each process to calculate the portion of the physical grid
+    # corresponding to its coordinates in the Cartesian communicator
+    x_off = cx * (nn_x)
 
     # And same goes for the y and z directions
-    y_off = phys_p_cy * (nn_y)
-    z_off = phys_p_cz * (nn_z)
+    y_off = cy * (nn_y)
+    z_off = cz * (nn_z)
 
     # We only set our local boundary conditions
     # Because this is analytical, we COULD set them in the ghost regions as well - this could be a good test
@@ -504,26 +466,58 @@ cdef void set_boundary_conditions(Field *grid,                                  
                 curr_field.v = shear_wave_v((xx - 1 + x_off) * dx, L_x, 0, mu, rho)
                 curr_field.s12 = shear_wave_sig((xx - 1 + x_off) * dx, L_x, 0, mu, rho)
 
+
+cdef void set_dummy_boundary_conditions(Field *grid,                            # Grid
+                  int nn_x, int nn_y, int nn_z,                                 # Number of grid points not in the ghost region
+                  int cx, int cy, int cz,                                       # Cartesian location of the current processor
+                  int npx, int npy, int npz,                                    # Number of processors in each dimension
+                  np.float64_t dx,                                              # Grid spacing
+                  np.float64_t L_x, np.float64_t L_y, np.float64_t L_z,         # Grid dimensions
+                  np.float64_t mu, np.float64_t rho) nogil:                     # Material density and mu
+
+    """
+    Sets dummy boundary conditions to test the propagation of a signal across subdomain boundaries.
+    Can be called in place of set_boundary_conditions for testing purposes.
+    """
+    cdef:
+        int xx, yy, zz                                        # Loop indices
+        Field *curr_field                                     # Pointer to Field being adjusted
+       
+    # Just set one point on one edge to nonzero
+    xx = 1
+    yy = 1
+    zz = 1
+    curr_field = look_up(grid, nn_x, nn_y, nn_z, xx, yy, zz)
+    curr_field.v = 0.1
+    curr_field.s12 = 0.1
+
+
 cdef np.float64_t shear_wave_v(np.float64_t xx, np.float64_t L_x, np.float64_t tt,
                                np.float64_t mu, np.float64_t rho) nogil:
 
-    """ Returns the value of a velocity shear wave located in plane x=xx at time tt """
+    """
+    Returns the value of a velocity shear wave located in plane x=xx at time tt.
+    """
 
     cdef np.float64_t pi = 3.14159265359
     cdef np.float64_t c_s = libc.math.sqrt(mu / rho)
 
     return libc.math.sin(2 * pi / (L_x) * (xx - c_s * tt))
 
+
 cdef np.float64_t shear_wave_sig(np.float64_t xx, np.float64_t L_x, np.float64_t tt,
                                  np.float64_t mu, np.float64_t rho) nogil:
 
-    """ Returns the value of a shear-stress shear wave located in plane x=xx at time tt """
+    """
+    Returns the value of a shear-stress shear wave located in plane x=xx at time tt.
+    """
 
     return -rho * libc.math.sqrt(mu / rho) * shear_wave_v(xx, L_x, tt, mu, rho)
 
+
 cdef void get_dims(int size, int dims[]) nogil:
     '''
-    Return integer dimensions in 3D closest to a cube. Assumes number of procs is a power of 2.
+    Assigns integer dimensions in 3D closest to a cube. Assumes number of procs is a power of 2.
     '''
 
     cdef:
@@ -547,5 +541,4 @@ cdef void get_dims(int size, int dims[]) nogil:
         dims[0] = 2 ** pwr
         dims[1] = 2 ** pwr
         dims[2] = 2 ** (pwr - 1)
-
 
