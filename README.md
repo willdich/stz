@@ -114,6 +114,11 @@ Last, if two processors share a corner, they must share this individual value wi
 
 In total, there are six faces, twelve edges, and eight corners, leading to 26 portions of the local subdomain that each processor must send out to adjacent processors, and 26 portions of adjacent subdomains that each processor must receive from nearby processors before being capable of computing spatial derivatives in their subdomain. Once a processor's ghost region has been populated, said processor is free to calculate derivatives at all physical grid locations contained in the corresponding subdomain with no consideration of edge cases. Derivatives do not need to be calculated in ghost regions as they correspond to points in adjacent processors and are calculated in *those* processors. Note that the ghost regions must be repopulated at every timestep in accordance with the update of values across the grid.
 
+### Future Optimizations
+
+This code could be further parallelized by the addition of instruction-level parallelism using AVX, or multithreading (either using Python threading or Cython/OpenMP prange) within each subdomain. We did not have time to implement these additional methods of parallelism, but both could be good candidates for achieving further speedup of the code. For example, with AVX, the arithmetic operations involved in calculating the finite-difference derivatives at each point could be sped up by up to 8 times their current speed. This would not translate to 8x speedup overall, since there is significant overhead in MPI communication, but would improve the total running time of the simulation by some amount.
+
+Cython/OpenMP threading (i.e., prange) would likely have less overhead than Python multithreading and thus might be a better candidate for within-subdomain parallelism, but this gain is not always realized in practice because the way Cython implements the OpenMP parallelism in C can confuse the compiler. This results in fewer compiler optimizations and thus slower code overall, which can offset the speedup due to parallelism. It is also unclear the degree to which individual cores on Odyssey are capable of multithreading, so there might not be much or any gain from adding an additional level of parallelism if each core can only run one thread at a time.
 
 ## Contributors
 
