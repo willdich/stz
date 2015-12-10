@@ -36,5 +36,9 @@ def prepare_input(config_file):
 
 
 if __name__ == '__main__':
+    import sys
 
-    go(*(prepare_input('test.conf')))
+    config_file = sys.argv[1]
+
+    # Run the simulation!
+    go(*(prepare_input(config_file)))
