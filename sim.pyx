@@ -19,13 +19,17 @@ cpdef int go(int N_x, int N_y, int N_z, int N_t,                                
     """
 
     cdef:
-        int xx, yy, zz, t_ind                                                               # Iterator variables
-        float tt                                                                            # Value of the current time
-        Field *curr_grid_element                                                            # Current field
-        Field *grid  = <Field *> malloc((N_x + 2) * (N_y + 2) * (N_z + 2) * sizeof(Field))  # Physical grid
-        FILE *fp                                                                            # Output file
-        np.float64_t [20] initial_field_values                                              # Initial values for the grid
-        np.float64_t curr_sig_shear, curr_v_shear                                           # Debug variables
+        int xx, yy, zz, t_ind
+        float tt
+        Field *curr_grid_element
+        Field *grid = <Field *> malloc((N_x + 2) * (N_y + 2) * (N_z + 2) * sizeof(Field))
+        FILE *fp
+        np.float64_t [20] initial_field_values
+        np.float64_t curr_sig_shear, curr_v_shear
+
+    fp = fopen("input_params.dat", "w")
+    fprintf(fp, "%f %f %f %f %f %f %f %f %f %f %f %f, %d, %d, %d, %d", L_x, L_y, L_z, dx, dy, dz, dt, mu, rho, lambd, t_0, t_f, N_x, N_y, N_z, N_t) 
+    fclose(fp)
 
     # Initialize the values that every Field will start with.
     for xx in range(20):
@@ -34,7 +38,7 @@ cpdef int go(int N_x, int N_y, int N_z, int N_t,                                
     # Set the output file
     fp = fopen(outfile, "w")
 
-    # Fill the grid with zeros to start with
+    # Instantiate the grid
     for xx in range(N_x + 2):
         for yy in range(N_y + 2):
             for zz in range(N_z + 2):
@@ -46,7 +50,7 @@ cpdef int go(int N_x, int N_y, int N_z, int N_t,                                
                             L_x, L_y, L_z,
                             mu, rho)
 
-    # Run the simulation for N_t timesteps
+    # Run the simulation
     for t_ind in range(N_t):
 
         # Update the ghost regions to enforce periodicity
@@ -84,10 +88,8 @@ cpdef int go(int N_x, int N_y, int N_z, int N_t,                                
                     curr_grid_element = look_up(grid, N_x, N_y, N_z, xx, yy, zz)
                     update(curr_grid_element) 
 
-                    # Only print every five timesteps
-                    # Because the shear wave solution is not y- or z-dependent, we print for all x values
-                    # but only one specific y/z value (since all the y & z values are identical).
                     if ((yy == 1) and (zz == 1) and (t_ind % 5 == 0)):
+                        #printf("%d %f %d %f %d %f \n", xx, xx * dx, yy, yy * dy, zz, zz * dz)
 
                         # Calculate the value of the shear waves
                         # We use xx - 1 because xx = 1 corresponds to x = 0: xx=0 is the ghost region!
@@ -107,14 +109,13 @@ cpdef int go(int N_x, int N_y, int N_z, int N_t,                                
     fclose(fp)
 
     free(grid)
-
     
 cdef void set_up_ghost_regions(Field *grid,                                  # Our grid
                           int N_x, int N_y, int N_z) nogil:                  # Number of non-ghost points in each dimension
 
-    """
-    Sets the ghost regions as necessary, using the MPI Cartesian communicator to pass edge values to the ghost regions of
-    adjacent processes and receive corresponding values in return.
+    """ Sets the ghost regions as necessary. In the serial implementation, this is just simple 
+    periodic boundary conditions. This function will become more complex when moving to the parallel implementation
+    with MPI-based communcation across processors.
     """
 
     cdef:
@@ -122,6 +123,7 @@ cdef void set_up_ghost_regions(Field *grid,                                  # O
 
     # Instantiate periodic boundary conditions
     # First handle the z periodicity
+    # Note that these bounds need to be checked... should it be 1 to N_x + 1?
     for xx in range(1, N_x + 1):
         for yy in range(1, N_y + 1):
             # We have 2 + N_z points in the N_z direction
@@ -196,15 +198,11 @@ cdef void set_boundary_conditions(Field *grid,                                  
                                   np.float64_t L_x, np.float64_t L_y, np.float64_t L_z,         # Grid dimensions
                                   np.float64_t mu, np.float64_t rho) nogil:                     # Material density and mu
 
-    """
-    Instantiates shear wave boundary/initial conditions.
-    """
+    """ Instantiates shear wave boundary/initial conditions """
     cdef:
         int xx, yy, zz                                        # Loop indices
         Field *curr_field
 
-    # We set each position in the grid (not counting the ghost regions at the edges) to the analytical solution for
-    # shear wave initial conditions.
     for xx in range(1, N_x + 1):
         for yy in range(1, N_y + 1):
             for zz in range(1, N_z + 1):
@@ -212,26 +210,19 @@ cdef void set_boundary_conditions(Field *grid,                                  
                 curr_field.v = shear_wave_v((xx - 1) * dx, L_x, 0, mu, rho)
                 curr_field.s12 = shear_wave_sig((xx - 1) * dx, L_x, 0, mu, rho)
 
-
 cdef np.float64_t shear_wave_v(np.float64_t xx, np.float64_t L_x, np.float64_t tt,
                                np.float64_t mu, np.float64_t rho) nogil:
 
-    """
-    Returns the value of a velocity shear wave located in plane x=xx at time tt.
-    """
+    """ Returns the value of a velocity shear wave located in plane x=xx at time tt """
 
     cdef np.float64_t pi = 3.14159265359
     cdef np.float64_t c_s = libc.math.sqrt(mu / rho)
 
     return libc.math.sin(2 * pi / (L_x) * (xx - c_s * tt))
 
-
 cdef np.float64_t shear_wave_sig(np.float64_t xx, np.float64_t L_x, np.float64_t tt,
                                  np.float64_t mu, np.float64_t rho) nogil:
 
-    """
-    Returns the value of a shear-stress shear wave located in plane x=xx at time tt.
-    """
+    """ Returns the value of a shear-stress shear wave located in plane x=xx at time tt """
 
     return -rho * libc.math.sqrt(mu / rho) * shear_wave_v(xx, L_x, tt, mu, rho)
-
