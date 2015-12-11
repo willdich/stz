@@ -70,7 +70,6 @@ cdef void update_stresses(Field *grid,                                         #
     # + 1 / (4 * dx) * (first expression with z -> z - 1)
     # + 1 / (4 * dx) * (second expression with z -> z-1)
     # First handle the x derivatives
-    d_s11_dx = .25 * dx_inv * (me.s11 - xm.s11 + ym.s11 - xm_ym.s11 + zm.s11 - xm_zm.s11 + ym_zm.s11 - xm_ym_zm.s11) 
     du_dx = .25 * dx_inv * (xp.u - me.u + xp_yp.u - yp.u + xp_zp.u - zp.u + xp_yp_zp.u - yp_zp.u)
     dv_dx = .25 * dx_inv * (xp.v - me.v + xp_yp.v - yp.v + xp_zp.v - zp.v + xp_yp_zp.v - yp_zp.v)
     dw_dx = .25 * dx_inv * (xp.w - me.w + xp_yp.w - yp.w + xp_zp.w - zp.w + xp_yp_zp.w - yp_zp.w)
